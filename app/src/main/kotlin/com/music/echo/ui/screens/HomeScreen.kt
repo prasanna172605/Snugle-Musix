@@ -7,6 +7,7 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
@@ -197,7 +198,7 @@ fun CommunityPlaylistCard(
     val isDark = isSystemInDarkTheme()
 
     val containerColor = if (isDark) {
-        MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
+        Color.Black.copy(alpha = 0.5f)
     } else {
         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
     }
@@ -208,7 +209,21 @@ fun CommunityPlaylistCard(
     Card(
         modifier = modifier
             .width(320.dp)
-            .height(420.dp),
+            .height(420.dp)
+            .then(
+                if (isDark) {
+                    Modifier.border(
+                        1.dp,
+                        Brush.horizontalGradient(
+                            listOf(
+                                Color(0xFF00E5FF).copy(alpha = 0.5f),
+                                Color(0xFF2979FF).copy(alpha = 0.4f)
+                            )
+                        ),
+                        RoundedCornerShape(28.dp)
+                    )
+                } else Modifier
+            ),
         colors = CardDefaults.cardColors(
             containerColor = containerColor
         ),
@@ -446,11 +461,27 @@ fun DailyDiscoverCard(
 
     val song = dailyDiscover.recommendation as? SongItem
     val playsString = stringResource(R.string.plays)
+    val isDark = isSystemInDarkTheme()
+    val containerColor = if (isDark) Color.Black.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant
 
     Card(
         modifier = modifier
             .fillMaxSize()
             .clip(RoundedCornerShape(28.dp))
+            .then(
+                if (isDark) {
+                    Modifier.border(
+                        1.dp,
+                        Brush.horizontalGradient(
+                            listOf(
+                                Color(0xFF00E5FF).copy(alpha = 0.5f),
+                                Color(0xFF2979FF).copy(alpha = 0.4f)
+                            )
+                        ),
+                        RoundedCornerShape(28.dp)
+                    )
+                } else Modifier
+            )
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = {
@@ -467,7 +498,7 @@ fun DailyDiscoverCard(
                 }
             ),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            containerColor = containerColor,
         ),
         shape = RoundedCornerShape(28.dp)
     ) {

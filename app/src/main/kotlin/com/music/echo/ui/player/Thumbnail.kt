@@ -8,9 +8,14 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.border
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
@@ -656,10 +661,22 @@ private fun ThumbnailItem(
             },
         contentAlignment = Alignment.Center
     ) {
+        val targetScale = if (isPlaying && isCurrentItem) 1.0f else 0.92f
+        val animatedScale by animateFloatAsState(
+            targetValue = targetScale,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow
+            ),
+            label = "ArtworkScale"
+        )
+
         Box(
             modifier = Modifier
                 .size(dimensions.thumbnailSize)
                 .graphicsLayer {
+                    scaleX = animatedScale
+                    scaleY = animatedScale
                     rotationZ = rotation
                 }
                 .clip(
@@ -672,6 +689,18 @@ private fun ThumbnailItem(
                 .graphicsLayer {
                     rotationZ = -rotation
                 }
+                .border(
+                    2.dp,
+                    Brush.sweepGradient(
+                        listOf(
+                            Color(0xFF00E5FF),
+                            Color(0xFF2979FF),
+                            Color(0xFF8A2BE2),
+                            Color(0xFF00E5FF)
+                        )
+                    ),
+                    if (rotatingThumbnail) MaterialShapes.Clover8Leaf.toShape() else RoundedCornerShape(dimensions.cornerRadius)
+                )
         ) {
             if (hidePlayerThumbnail) {
                 HiddenThumbnailPlaceholder(textBackgroundColor = textBackgroundColor)

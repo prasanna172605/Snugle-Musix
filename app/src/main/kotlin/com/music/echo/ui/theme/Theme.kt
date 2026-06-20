@@ -46,8 +46,28 @@ fun snuglemusixTheme(
     }
 
     val colorScheme = remember(baseColorScheme, pureBlack, darkTheme) {
-        if (darkTheme && pureBlack) {
-            baseColorScheme.pureBlack(true)
+        if (darkTheme) {
+            baseColorScheme.copy(
+                primary = Color(0xFF00E5FF),
+                onPrimary = Color.Black,
+                secondary = Color(0xFF2979FF),
+                onSecondary = Color.White,
+                tertiary = Color(0xFF8A2BE2),
+                onTertiary = Color.White,
+                background = Color.Black,
+                onBackground = Color.White,
+                surface = Color.Black,
+                onSurface = Color.White,
+                surfaceVariant = Color(0xFF0C0C0C),
+                onSurfaceVariant = Color(0xFFE0E0E0),
+                surfaceContainer = Color(0xFF050505),
+                surfaceContainerLow = Color(0xFF020202),
+                surfaceContainerLowest = Color(0xFF000000),
+                surfaceContainerHigh = Color(0xFF0E0E0E),
+                surfaceContainerHighest = Color(0xFF141414),
+                outline = Color(0xFF2979FF).copy(alpha = 0.5f),
+                outlineVariant = Color(0xFF00E5FF).copy(alpha = 0.3f)
+            )
         } else {
             baseColorScheme
         }

@@ -39,15 +39,19 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
 
-        // LastFM API keys from GitHub Secrets
-//        val lastFmKey = localProperties.getProperty("LASTFM_API_KEY") ?: System.getenv("LASTFM_API_KEY") ?: ""
-//        val lastFmSecret = localProperties.getProperty("LASTFM_SECRET") ?: System.getenv("LASTFM_SECRET") ?: ""
-        
-        val lastFmKey = "694cbaa17c78202a133eac4656dff651"
-        val lastFmSecret = "a0fdaf6060f19128c4a84f297c71e627"
+        // LastFM and Google API keys from secrets.properties or System Env
+        val secretsProps = Properties()
+        val secretsFile = rootProject.file("secrets.properties")
+        if (secretsFile.exists()) {
+            secretsFile.inputStream().use { secretsProps.load(it) }
+        }
+        val lastFmKey = secretsProps.getProperty("LASTFM_API_KEY") ?: System.getenv("LASTFM_API_KEY") ?: ""
+        val lastFmSecret = secretsProps.getProperty("LASTFM_SECRET") ?: System.getenv("LASTFM_SECRET") ?: ""
+        val googleApiKey = secretsProps.getProperty("GOOGLE_API_KEY") ?: System.getenv("GOOGLE_API_KEY") ?: ""
 
         buildConfigField("String", "LASTFM_API_KEY", "\"$lastFmKey\"")
         buildConfigField("String", "LASTFM_SECRET", "\"$lastFmSecret\"")
+        buildConfigField("String", "GOOGLE_API_KEY", "\"$googleApiKey\"")
 
 //add nightly build label support
         val isNightly = project.hasProperty("nightly") && project.property("nightly") == "true"

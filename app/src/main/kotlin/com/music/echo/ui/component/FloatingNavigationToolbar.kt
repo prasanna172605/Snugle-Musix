@@ -64,6 +64,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalDensity
@@ -123,7 +124,13 @@ fun FloatingNavigationToolbar(
                     .widthIn(max = 480.dp)
                     .border(
                         1.dp,
-                        if (pureBlack) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        Brush.horizontalGradient(
+                            listOf(
+                                Color(0xFF00E5FF).copy(alpha = 0.8f),
+                                Color(0xFF2979FF).copy(alpha = 0.6f),
+                                Color(0xFF8A2BE2).copy(alpha = 0.4f)
+                            )
+                        ),
                         RoundedCornerShape(24.dp)
                     ),
                 colors = toolbarColors,
@@ -153,7 +160,13 @@ fun FloatingNavigationToolbar(
                     .widthIn(max = 480.dp)
                     .border(
                         1.dp,
-                        if (pureBlack) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        Brush.horizontalGradient(
+                            listOf(
+                                Color(0xFF00E5FF).copy(alpha = 0.8f),
+                                Color(0xFF2979FF).copy(alpha = 0.6f),
+                                Color(0xFF8A2BE2).copy(alpha = 0.4f)
+                            )
+                        ),
                         RoundedCornerShape(24.dp)
                     ),
                 colors = toolbarColors,
@@ -175,7 +188,13 @@ fun FloatingNavigationToolbar(
                     .widthIn(max = 420.dp)
                     .border(
                         1.dp,
-                        if (pureBlack) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        Brush.horizontalGradient(
+                            listOf(
+                                Color(0xFF00E5FF).copy(alpha = 0.8f),
+                                Color(0xFF2979FF).copy(alpha = 0.6f),
+                                Color(0xFF8A2BE2).copy(alpha = 0.4f)
+                            )
+                        ),
                         RoundedCornerShape(24.dp)
                     ),
                 colors = toolbarColors,
@@ -502,7 +521,7 @@ private fun FloatingNavigationToolbarItem(
 @Composable
 private fun floatingToolbarContainerColor(pureBlack: Boolean): Color {
     return if (pureBlack) {
-        Color.Black.copy(alpha = 0.65f)
+        Color.Black.copy(alpha = 0.60f)
     } else {
         MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.85f)
     }
@@ -510,29 +529,29 @@ private fun floatingToolbarContainerColor(pureBlack: Boolean): Color {
 
 @Composable
 private fun floatingToolbarFabContainerColor(pureBlack: Boolean): Color {
-    return if (pureBlack) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.tertiaryContainer
+    return if (pureBlack) Color(0xFF00E5FF).copy(alpha = 0.2f) else MaterialTheme.colorScheme.tertiaryContainer
 }
 
 @Composable
 private fun floatingToolbarFabContentColor(pureBlack: Boolean): Color {
-    return if (pureBlack) Color.White else MaterialTheme.colorScheme.onTertiaryContainer
+    return if (pureBlack) Color(0xFF00E5FF) else MaterialTheme.colorScheme.onTertiaryContainer
 }
 
 @Composable
 private fun floatingToolbarSelectedItemContainerColor(pureBlack: Boolean): Color {
-    return if (pureBlack) Color.White.copy(alpha = 0.18f) else MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f)
+    return if (pureBlack) Color(0xFF2979FF).copy(alpha = 0.25f) else MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f)
 }
 
 @Composable
 private fun floatingToolbarSelectedItemContentColor(pureBlack: Boolean): Color {
-    return if (pureBlack) Color.White else MaterialTheme.colorScheme.onSecondaryContainer
+    return if (pureBlack) Color(0xFF00E5FF) else MaterialTheme.colorScheme.onSecondaryContainer
 }
 
 
 @Composable
 private fun floatingToolbarItemContentColor(pureBlack: Boolean): Color {
     return if (pureBlack) {
-        Color.White.copy(alpha = 0.82f)
+        Color.White.copy(alpha = 0.85f)
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
     }

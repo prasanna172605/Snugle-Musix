@@ -264,7 +264,7 @@ private fun NewMiniPlayer(
     
     
     val isDynamicBackground = miniPlayerBackground != PlayerBackgroundStyle.DEFAULT
-    val backgroundColor = if (pureBlack && useDarkTheme) Color.Black else MaterialTheme.colorScheme.surfaceContainer
+    val backgroundColor = if (useDarkTheme) Color.Black.copy(alpha = 0.60f) else MaterialTheme.colorScheme.surfaceContainer
     
     val primaryColor = if (isDynamicBackground) Color.White else MaterialTheme.colorScheme.primary
     val outlineColor = if (isDynamicBackground) Color.White.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline
@@ -346,7 +346,17 @@ private fun NewMiniPlayer(
                 .offset { IntOffset(offsetXAnimatable.value.roundToInt(), 0) }
                 .clip(RoundedCornerShape(32.dp))
                 .background(color = backgroundColor)
-                .border(1.dp, if (useDarkTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f) else outlineColor.copy(alpha = 0.3f), RoundedCornerShape(32.dp))
+                .border(
+                    1.dp,
+                    if (useDarkTheme) Brush.horizontalGradient(
+                        listOf(
+                            Color(0xFF00E5FF).copy(alpha = 0.8f),
+                            Color(0xFF2979FF).copy(alpha = 0.6f),
+                            Color(0xFF8A2BE2).copy(alpha = 0.4f)
+                        )
+                    ) else androidx.compose.ui.graphics.SolidColor(outlineColor.copy(alpha = 0.3f)),
+                    RoundedCornerShape(32.dp)
+                )
         ) {
             
             MiniPlayerBackgroundLayer(
