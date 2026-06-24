@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/shortcut_search"
+        android:shortcutId="search"
+        android:shortcutShortLabel="@string/search">
+        <intent
+            android:action="prasanna172605.echo.music.action.SEARCH"
+            android:targetClass="prasanna172605.echo.music.MainActivity"
+            android:targetPackage="prasanna172605.echo.music" />
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/shortcut_library"
+        android:shortcutId="library"
+        android:shortcutShortLabel="@string/filter_library">
+        <intent
+            android:action="prasanna172605.echo.music.action.LIBRARY"
+            android:targetClass="prasanna172605.echo.music.MainActivity"
+            android:targetPackage="prasanna172605.echo.music" />
+    </shortcut>
+</shortcuts>
+
