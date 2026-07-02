@@ -1,7 +1,7 @@
-# Snuggle Musix v5.2.24
+# Snuggle Musix v5.2.25
 
-- Fixed Listen Together server to use Echo Music server (wss://iad1tya-echomusic.hf.space/ws).
-- Removed AI lyrics API provider/key/model settings from user interface.
-- Fixed update notification linking to incorrect APK download URL.
-- Fixed in-app auto-update to download the correct Universal GMS APK.
-- Removed separate FOSS build pipeline — only Universal GMS APK is released.
+- Fully rewritten Git history to establish a clean, independent Snuggle Musix repository origin.
+- Updated About Screen to link to the new dedicated Snuggle Musix landing page.
+- Added premium Snuggle Musix logo to the About screen.
+- Fixed GitHub repository and portfolio links across the application.
+- Added brand-new landing page to the web portfolio showcasing actual app interfaces.
