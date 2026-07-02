@@ -441,46 +441,9 @@ class MusicService :
         isRunning = true
 
         
-        // Workaround for ForegroundServiceStartNotAllowedException
-        setListener(object : Listener {
-            override fun onForegroundServiceStartNotAllowedException() {
-                Timber.tag(TAG).e("ForegroundServiceStartNotAllowedException caught by MediaSessionService listener")
-                reportException(Exception("ForegroundServiceStartNotAllowedException caught by MediaSessionService listener"))
-            }
-        })
-        
-        playerInitialized.value = false
-
-        
-        
-
-        try {
-            val nm = getSystemService(NotificationManager::class.java)
-            nm?.createNotificationChannel(
-                NotificationChannel(
-                    CHANNEL_ID,
-                    getString(R.string.music_player),
-                    NotificationManager.IMPORTANCE_LOW
-                )
-            )
-            val pending = PendingIntent.getActivity(
-                this,
-                0,
-                Intent(this, MainActivity::class.java),
-                PendingIntent.FLAG_IMMUTABLE
-            )
-            val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle(getString(R.string.music_player))
-                .setContentText("")
-                .setSmallIcon(R.drawable.ic_launcher_nobg)  
-                .setContentIntent(pending)
-                .setOngoing(true)
-                .build()
-            startForeground(NOTIFICATION_ID, notification)
-        } catch (e: Exception) {
-            Timber.tag(TAG).e(e, "Failed to create foreground notification")
-            reportException(e)
-        }
+        // Removed the empty startForeground() hack here to prevent Android from spawning lingering
+        // empty media controls before playback has even started. MediaNotificationProvider will
+        // gracefully handle posting the real notification when playback truly begins.
 
         setMediaNotificationProvider(
             DefaultMediaNotificationProvider(
@@ -3026,6 +2989,22 @@ class MusicService :
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
+        
+        // ISSUE: If paused, Android system media controls linger. 
+        // We must completely clean up the state and kill the service explicitly.
+        
+        // Stop playback entirely
+        player.pause()
+        player.stop()
+        player.clearMediaItems()
+        
+        // Completely destroy foreground notification to remove system media controls
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        val nm = getSystemService(NotificationManager::class.java)
+        nm?.cancelAll()
+        
+        // Stop the service itself (which calls onDestroy and mediaSession.release)
+        stopSelf()
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession
