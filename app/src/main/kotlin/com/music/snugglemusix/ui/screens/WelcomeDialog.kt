@@ -91,8 +91,15 @@ fun WelcomeDialog(
                     WelcomeActionRow(
                         icon = painterResource(R.drawable.website),
                         title = "Portfolio",
-                        subtitle = "aberrant-portfolio",
+                        subtitle = "aberrant-portfolio-2026.web.app",
                         onClick = { uriHandler.openUri("https://aberrant-portfolio-2026.web.app/") }
+                    )
+                    WelcomeDivider()
+                    WelcomeActionRow(
+                        icon = painterResource(R.drawable.website),
+                        title = "Website",
+                        subtitle = "prasanna0705.netlify.app",
+                        onClick = { uriHandler.openUri("https://prasanna0705.netlify.app/Snuggle-Musix") }
                     )
                 }
 

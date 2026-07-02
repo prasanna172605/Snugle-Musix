@@ -131,6 +131,13 @@ highlightKey: String? = null) {
                     AboutActionRow(
                         icon = painterResource(R.drawable.website),
                         title = "Portfolio",
+                        subtitle = "aberrant-portfolio-2026.web.app",
+                        onClick = { uriHandler.openUri("https://aberrant-portfolio-2026.web.app/") },
+                    )
+                    AboutDivider()
+                    AboutActionRow(
+                        icon = painterResource(R.drawable.website),
+                        title = "Website",
                         subtitle = "prasanna0705.netlify.app",
                         onClick = { uriHandler.openUri("https://prasanna0705.netlify.app/Snuggle-Musix") },
                     )
@@ -140,28 +147,6 @@ highlightKey: String? = null) {
                         title = "Instagram",
                         subtitle = "@__prasannaaah__",
                         onClick = { uriHandler.openUri("https://www.instagram.com/__prasannaaah__/?__pwa=1") },
-                    )
-                }
-            }
-            
-            item {
-                AboutSectionCard(title = "Information") {
-                    AboutActionRow(
-                        icon = painterResource(R.drawable.list),
-                        title = "Changelog",
-                        onClick = { uriHandler.openUri("https://github.com/prasanna172605/Snugle-Musix/releases") },
-                    )
-                    AboutDivider()
-                    AboutActionRow(
-                        icon = painterResource(R.drawable.lock),
-                        title = "Privacy Policy",
-                        onClick = { uriHandler.openUri("https://github.com/prasanna172605/Snugle-Musix#privacy") },
-                    )
-                    AboutDivider()
-                    AboutActionRow(
-                        icon = painterResource(R.drawable.info),
-                        title = "Licenses",
-                        onClick = { navController.navigate("settings/about/licenses") },
                     )
                 }
             }
