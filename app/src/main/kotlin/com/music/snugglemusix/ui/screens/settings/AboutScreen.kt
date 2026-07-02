@@ -230,13 +230,13 @@ private fun AboutAppCard() {
             ) {
                 if (rotation <= 90f) {
                     Image(
-                        painter = painterResource(R.mipmap.ic_launcher),
+                        painter = painterResource(R.drawable.ic_launcher_nobg),
                         contentDescription = "Snuggle Musix Logo",
                         modifier = Modifier.fillMaxSize().clip(CircleShape)
                     )
                 } else {
                     Image(
-                        painter = painterResource(R.mipmap.ic_launcher),
+                        painter = painterResource(R.drawable.ic_launcher_nobg),
                         contentDescription = "Snuggle Musix Logo",
                         modifier = Modifier
                             .fillMaxSize()
