@@ -13,7 +13,7 @@
   
   <br>
 
-  <a href="https://prasanna0705.netlify.app/projects">
+  <a href="https://prasanna0705.netlify.app/Snuggle-Musix">
     <img src="assets/download.png" alt="Download" width="180"/>
   </a>
   &nbsp;
@@ -142,7 +142,7 @@ Snuggle Musix delivers a seamless, premium listening experience by leveraging Yo
 
 ### Android Installation
 
-Download the latest APK from the [Download Page](https://prasanna0705.netlify.app/) or directly from the [GitHub Releases](https://github.com/prasanna172605/Snugle-Musix/releases/latest).
+Download the latest APK from the [Download Page](https://prasanna0705.netlify.app/Snuggle-Musix) or directly from the [GitHub Releases](https://github.com/prasanna172605/Snugle-Musix/releases/latest).
 
 ### Building from Source
 

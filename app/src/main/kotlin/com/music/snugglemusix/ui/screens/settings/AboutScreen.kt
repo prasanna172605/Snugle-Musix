@@ -131,8 +131,8 @@ highlightKey: String? = null) {
                     AboutActionRow(
                         icon = painterResource(R.drawable.website),
                         title = "Portfolio",
-                        subtitle = "aberrant-portfolio",
-                        onClick = { uriHandler.openUri("https://aberrant-portfolio-2026.web.app/") },
+                        subtitle = "prasanna0705.netlify.app",
+                        onClick = { uriHandler.openUri("https://prasanna0705.netlify.app/Snuggle-Musix") },
                     )
                     AboutDivider()
                     AboutActionRow(
