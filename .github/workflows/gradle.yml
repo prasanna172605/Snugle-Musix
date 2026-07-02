@@ -97,7 +97,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          name: ${{ env.RELEASE_TITLE }}
+          name: ${{ env.RELEASE_TITLE || github.ref_name }}
           body_path: release-body.md
           files: app/build/outputs/apk/release-artifacts/*.apk
         env:
