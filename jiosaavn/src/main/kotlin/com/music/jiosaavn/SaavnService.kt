@@ -20,6 +20,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
@@ -103,9 +104,9 @@ object SaavnService {
             install(HttpTimeout) {
                 // Keep timeouts short so that a slow/unavailable Saavn response
                 // falls back to YouTube quickly without the user noticing a stall.
-                requestTimeoutMillis = 4_000
+                requestTimeoutMillis = 5_000
                 connectTimeoutMillis = 3_000
-                socketTimeoutMillis  = 4_000
+                socketTimeoutMillis  = 5_000
             }
             defaultRequest {
                 headers.append(HttpHeaders.Accept, "application/json")
@@ -115,30 +116,47 @@ object SaavnService {
         }
     }
 
-    private suspend fun getWithFallback(
+    private suspend inline fun <reified T> getWithFallback(
         endpoint: String,
         block: io.ktor.client.request.HttpRequestBuilder.() -> Unit = {}
-    ): io.ktor.client.statement.HttpResponse {
-        var attempt = 0
+    ): T {
         var lastException: Exception? = null
-        
-        while (attempt < 3) {
+        var attempts = 0
+        val maxAttempts = EndpointManager.SERVERS.size
+
+        while (attempts < maxAttempts) {
+            val baseUrl = EndpointManager.getCurrentServer()
+            val url = "$baseUrl/api/$endpoint"
+            println("[Saavn] Trying endpoint ${EndpointManager.currentServerIndex + 1}...")
+            
             try {
-                val url = "${DeviceRouter.getCurrentServer()}/api/$endpoint"
                 val response = client.get(url, block)
                 if (response.status.value in 500..599) {
-                    DeviceRouter.fallbackToNextServer()
-                    attempt++
-                    continue
+                    throw IllegalStateException("HTTP ${response.status.value}")
                 }
-                return response
+                if (response.status.value == 429) {
+                    throw IllegalStateException("HTTP 429 Too Many Requests")
+                }
+                
+                val bodyText = response.bodyAsText()
+                if (bodyText.isBlank()) {
+                    throw IllegalStateException("Empty response")
+                }
+                
+                val data = json.decodeFromString<T>(bodyText)
+                
+                EndpointManager.reportSuccess(baseUrl)
+                println("[Saavn] Selected endpoint:\n$baseUrl")
+                return data
             } catch (e: Exception) {
                 lastException = e
-                DeviceRouter.fallbackToNextServer()
-                attempt++
+                EndpointManager.reportFailure(baseUrl, e.message ?: e.javaClass.simpleName)
+                attempts++
             }
         }
-        throw lastException ?: IllegalStateException("All Saavn servers failed")
+        
+        println("[Saavn] All Saavn endpoints unavailable.")
+        throw lastException ?: IllegalStateException("All Saavn endpoints unavailable.")
     }
 
     /**
@@ -148,16 +166,11 @@ object SaavnService {
      *         request fails or returns no results.
      */
     suspend fun searchSongs(query: String): Result<List<SaavnSong>> = runCatching {
-        val response = getWithFallback("search/songs") {
+        val body = getWithFallback<SaavnSearchResponse>("search/songs") {
             parameter("query", query)
             parameter("limit", 5)   // fetch top-5 candidates; we only use #1
         }
 
-        if (response.status != HttpStatusCode.OK) {
-            throw IllegalStateException("Saavn search failed: HTTP ${response.status.value}")
-        }
-
-        val body = response.body<SaavnSearchResponse>()
         val results = body.data?.results.orEmpty()
 
         if (!body.success || results.isEmpty()) {
@@ -177,11 +190,8 @@ object SaavnService {
      */
     suspend fun getBestStreamUrl(saavnSongId: String, quality: String): String? =
         runCatching {
-            val response = getWithFallback("songs/$saavnSongId")
+            val body = getWithFallback<SaavnSongResponse>("songs/$saavnSongId")
 
-            if (response.status != HttpStatusCode.OK) return@runCatching null
-
-            val body = response.body<SaavnSongResponse>()
             if (!body.success) return@runCatching null
 
             val urls = body.data.firstOrNull()?.downloadUrl.orEmpty()

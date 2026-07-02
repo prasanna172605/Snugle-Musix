@@ -55,8 +55,8 @@ highlightKey: String? = null) {
             ServiceStatus("YouTube Music", { "https://music.youtube.com" }),
             ServiceStatus(
                 "JioSaavn",
-                { com.music.jiosaavn.DeviceRouter.getCurrentServer() },
-                { "Server ${com.music.jiosaavn.DeviceRouter.getCurrentServerIndex() + 1}" },
+                { com.music.jiosaavn.EndpointManager.getCurrentServer() },
+                { "Server ${com.music.jiosaavn.EndpointManager.currentServerIndex + 1}" },
                 offlineMessage = "Server hits its daily limit, we'll get you tomorrow!"
             ),
             ServiceStatus(

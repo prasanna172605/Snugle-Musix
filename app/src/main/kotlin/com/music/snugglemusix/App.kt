@@ -59,9 +59,7 @@ class App : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
         super.onCreate()
 
-        com.music.jiosaavn.DeviceRouter.init(this)
-        timber.log.Timber.d("Device ID: ${com.music.jiosaavn.DeviceRouter.getDeviceId()} | Assigned JioSaavn Server: ${com.music.jiosaavn.DeviceRouter.getCurrentServer()}")
-
+        // Replaced DeviceRouter with EndpointManager for resilient API routing
         // Removed destructive database deletion to preserve user data
 
         
