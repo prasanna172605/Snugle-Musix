@@ -182,6 +182,12 @@ import com.snuggle.music.playback.MusicService.MusicBinder
 import com.snuggle.music.playback.PlayerConnection
 import com.snuggle.music.playback.queues.YouTubeQueue
 import com.snuggle.music.ui.component.AppNavigationRail
+import com.snuggle.music.ui.component.AppNavigationBar
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.layout.Spacer
 import com.snuggle.music.ui.component.BottomSheetMenu
 import com.snuggle.music.ui.component.BottomSheetPage
 import com.snuggle.music.ui.component.FloatingNavigationToolbar
@@ -398,31 +404,28 @@ class MainActivity : ComponentActivity() {
         val enableDynamicTheme by rememberPreference(DynamicThemeKey, defaultValue = true)
         val enableHighRefreshRate by rememberPreference(EnableHighRefreshRateKey, defaultValue = true)
         val context = LocalContext.current
+        var showForceUpdateDialog by remember { mutableStateOf(false) }
+        var updateVersionText by remember { mutableStateOf("") }
 
         LaunchedEffect(Unit) {
             val prefs = context.dataStore.data.first()
 
-            if (getAutoUpdateCheckSetting(context)) {
-                
-                delay(2000L)
-                checkForUpdate(
-                    context = context,
-                    onSuccess = { latestVersion, isAvailable, _, _, _, _, _, _ ->
-                        val currentVersion = BuildConfig.VERSION_NAME
-                        Log.d("UpdateCheck", "Startup check success. Latest: $latestVersion, Current: $currentVersion, isAvailable: $isAvailable")
-                        saveUpdateAvailableState(context, isAvailable)
-                        
-                        if (isAvailable && getUpdateNotificationsSetting(context)) {
-                            Log.d("UpdateCheck", "Posting update notification for $latestVersion")
-                            UpdateNotificationHelper.showUpdateNotification(context, latestVersion)
-                        }
-                    },
-                    onError = {
-                        Log.e("UpdateCheck", "Startup check failed")
-                        
+            delay(1500L)
+            checkForUpdate(
+                context = context,
+                onSuccess = { latestVersion, isAvailable, _, _, _, _, _, _ ->
+                    val currentVersion = BuildConfig.VERSION_NAME
+                    Log.d("UpdateCheck", "Startup check success. Latest: $latestVersion, Current: $currentVersion, isAvailable: $isAvailable")
+                    saveUpdateAvailableState(context, isAvailable)
+                    if (isAvailable) {
+                        showForceUpdateDialog = true
+                        updateVersionText = latestVersion
                     }
-                )
-            }
+                },
+                onError = {
+                    Log.e("UpdateCheck", "Startup check failed")
+                }
+            )
         }
 
         LaunchedEffect(enableHighRefreshRate) {
@@ -546,6 +549,8 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 val (useNewMiniPlayerDesign) = rememberPreference(UseNewMiniPlayerDesignKey, defaultValue = true)
+                val (useClassicNavigationBar) = rememberPreference(com.snuggle.music.constants.UseClassicNavigationBarKey, defaultValue = false)
+                val (useLiquidGlassUi) = rememberPreference(com.snuggle.music.constants.UseLiquidGlassUiKey, defaultValue = true)
                 val defaultOpenTab = remember {
                     dataStore[DefaultOpenTabKey].toEnum(defaultValue = NavigationTab.HOME)
                 }
@@ -960,40 +965,58 @@ class MainActivity : ComponentActivity() {
                                         slideOffset + hideOffset
                                     }
 
-                                    Box(
-                                        modifier = Modifier
-                                            .align(Alignment.BottomCenter)
-                                            .height(navSlideDistance)
-                                            .offset(y = navOffsetY),
-                                    ) {
-                                        FloatingNavigationToolbar(
-                                            items = navigationItems,
-                                            pureBlack = pureBlack,
-                                            onShuffleClick = onShuffleClick,
-                                            shuffleIconRes = R.drawable.shuffle,
-                                            shuffleContentDescription = stringResource(R.string.shuffle),
-                                            onMusicRecognitionClick = onMusicRecognitionClick,
-                                            musicRecognitionContentDescription = stringResource(R.string.recognition),
-                                            onSettingsClick = { 
-                                                navController.navigate("settings") {
-                                                    launchSingleTop = true
-                                                }
-                                            },
-                                            settingsIconRes = R.drawable.settings,
-                                            settingsContentDescription = stringResource(R.string.settings),
-                                            isSelected = { screen ->
-                                                currentRoute == screen.route || currentRoute?.startsWith("${screen.route}/") == true
-                                            },
-                                            onItemClick = onNavItemClick,
+                                    if (useClassicNavigationBar) {
+                                        Box(
                                             modifier = Modifier
                                                 .align(Alignment.BottomCenter)
-                                                .padding(
-                                                    start = FloatingToolbarHorizontalPadding,
-                                                    end = FloatingToolbarHorizontalPadding,
-                                                    bottom = bottomInset + FloatingToolbarBottomPadding,
-                                                )
-                                                .height(NavigationBarHeight)
-                                        )
+                                                .fillMaxWidth()
+                                                .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer)
+                                                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Bottom))
+                                        ) {
+                                            AppNavigationBar(
+                                                navigationItems = navigationItems,
+                                                currentRoute = currentRoute,
+                                                onItemClick = onNavItemClick,
+                                                pureBlack = pureBlack,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                        }
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .align(Alignment.BottomCenter)
+                                                .height(navSlideDistance)
+                                                .offset(y = navOffsetY),
+                                        ) {
+                                            FloatingNavigationToolbar(
+                                                items = navigationItems,
+                                                pureBlack = pureBlack,
+                                                onShuffleClick = onShuffleClick,
+                                                shuffleIconRes = R.drawable.shuffle,
+                                                shuffleContentDescription = stringResource(R.string.shuffle),
+                                                onMusicRecognitionClick = onMusicRecognitionClick,
+                                                musicRecognitionContentDescription = stringResource(R.string.recognition),
+                                                onSettingsClick = { 
+                                                    navController.navigate("settings") {
+                                                        launchSingleTop = true
+                                                    }
+                                                },
+                                                settingsIconRes = R.drawable.settings,
+                                                settingsContentDescription = stringResource(R.string.settings),
+                                                isSelected = { screen ->
+                                                    currentRoute == screen.route || currentRoute?.startsWith("${screen.route}/") == true
+                                                },
+                                                onItemClick = onNavItemClick,
+                                                modifier = Modifier
+                                                    .align(Alignment.BottomCenter)
+                                                    .padding(
+                                                        start = FloatingToolbarHorizontalPadding,
+                                                        end = FloatingToolbarHorizontalPadding,
+                                                        bottom = bottomInset + FloatingToolbarBottomPadding,
+                                                    )
+                                                    .height(NavigationBarHeight)
+                                            )
+                                        }
                                     }
 
                                     Box(
@@ -1194,6 +1217,65 @@ class MainActivity : ComponentActivity() {
                     }
 
                     val ringtoneUiState by ringtoneViewModel.uiState.collectAsState()
+
+                    if (showForceUpdateDialog) {
+                        Dialog(
+                            onDismissRequest = { /* Non-dismissible */ },
+                            properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
+                        ) {
+                            Card(
+                                modifier = Modifier
+                                    .padding(16.dp)
+                                    .fillMaxWidth(),
+                                shape = RoundedCornerShape(24.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                ),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .padding(24.dp)
+                                        .fillMaxWidth(),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.update),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(48.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        text = "Update Required",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "Version $updateVersionText is available. Please update to continue using Snuggle Musix.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        textAlign = TextAlign.Center,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                                    )
+                                    Spacer(modifier = Modifier.height(24.dp))
+                                    Button(
+                                        onClick = {
+                                            navController.navigate("settings/update") {
+                                                launchSingleTop = true
+                                            }
+                                            showForceUpdateDialog = false
+                                        },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text("Update Now")
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     RingtoneTrimmerDialog(
                         isVisible = ringtoneUiState.showTrimmer,
                         songId = ringtoneUiState.targetSongId,

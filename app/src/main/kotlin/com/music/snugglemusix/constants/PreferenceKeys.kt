@@ -46,6 +46,9 @@ enum class DensityScale(val value: Float, val label: String) {
 
 val DefaultOpenTabKey = stringPreferencesKey("defaultOpenTab")
 val SlimNavBarKey = booleanPreferencesKey("slimNavBar")
+val UseClassicNavigationBarKey = booleanPreferencesKey("useClassicNavigationBar")
+val UseLiquidGlassUiKey = booleanPreferencesKey("useLiquidGlassUi")
+
 val GridItemsSizeKey = stringPreferencesKey("gridItemSize")
 val SliderStyleKey = stringPreferencesKey("sliderStyle")
 val SquigglySliderKey = booleanPreferencesKey("squigglySlider")
@@ -105,17 +108,17 @@ val IpVersionKey = stringPreferencesKey("ipVersion")
 const val LOSSLESS_ENABLED = true
 
 enum class AudioQuality {
-    OPUS,
-    SAAVN,
-    LOSSLESS,
+    LOW,     // 66kbps (Low)
+    MEDIUM,  // 129kbps (Medium)
+    HIGH,    // 256kbps (High - YouTube Music Premium)
 }
 
 val DownloadQualityKey = stringPreferencesKey("downloadQuality")
 
 enum class DownloadQuality {
-    YOUTUBE,
-    SAAVN,
-    LOSSLESS,
+    LOW,
+    MEDIUM,
+    HIGH,
 }
 
 val AudioOffload = booleanPreferencesKey("enableOffload")

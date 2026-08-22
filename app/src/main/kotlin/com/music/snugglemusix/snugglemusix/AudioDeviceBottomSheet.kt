@@ -771,7 +771,7 @@ fun VolumeControlRow(
 fun AudioQualitySelector(context: Context) {
     val (audioQuality, onAudioQualityChange) = rememberEnumPreference(
         key = AudioQualityKey,
-        defaultValue = AudioQuality.OPUS
+        defaultValue = AudioQuality.MEDIUM
     )
 
     Column(
@@ -787,14 +787,14 @@ fun AudioQualitySelector(context: Context) {
         )
 
         val options = listOf(
-            "Opus",
-            "320 kbps",
-            "Lossless"
+            "Low (66k)",
+            "Medium (129k)",
+            "High (256k)"
         )
         val selectedIndex = when (audioQuality) {
-            AudioQuality.SAAVN -> 1
-            AudioQuality.LOSSLESS -> 2
-            else -> 0
+            AudioQuality.LOW -> 0
+            AudioQuality.HIGH -> 2
+            else -> 1
         }
 
         androidx.compose.foundation.layout.FlowRow(
@@ -810,9 +810,9 @@ fun AudioQualitySelector(context: Context) {
                     checked = selectedIndex == index,
                     onCheckedChange = {
                         val newQuality = when (index) {
-                            1 -> AudioQuality.SAAVN
-                            2 -> AudioQuality.LOSSLESS
-                            else -> AudioQuality.OPUS
+                            0 -> AudioQuality.LOW
+                            2 -> AudioQuality.HIGH
+                            else -> AudioQuality.MEDIUM
                         }
                         onAudioQualityChange(newQuality)
                         applyAudioQuality(context, newQuality)
@@ -842,7 +842,7 @@ fun AudioQualitySelector(context: Context) {
 fun DownloadQualitySelector() {
     val (downloadQuality, onDownloadQualityChange) = rememberEnumPreference(
         key = com.snuggle.music.constants.DownloadQualityKey,
-        defaultValue = com.snuggle.music.constants.DownloadQuality.YOUTUBE
+        defaultValue = com.snuggle.music.constants.DownloadQuality.MEDIUM
     )
 
     Column(
@@ -863,8 +863,8 @@ fun DownloadQualitySelector() {
             "Lossless"
         )
         val selectedIndex = when (downloadQuality) {
-            com.snuggle.music.constants.DownloadQuality.SAAVN -> 1
-            com.snuggle.music.constants.DownloadQuality.LOSSLESS -> 2
+            com.snuggle.music.constants.DownloadQuality.MEDIUM -> 1
+            com.snuggle.music.constants.DownloadQuality.HIGH -> 2
             else -> 0
         }
 
@@ -881,9 +881,9 @@ fun DownloadQualitySelector() {
                     checked = selectedIndex == index,
                     onCheckedChange = {
                         val newQuality = when (index) {
-                            1 -> com.snuggle.music.constants.DownloadQuality.SAAVN
-                            2 -> com.snuggle.music.constants.DownloadQuality.LOSSLESS
-                            else -> com.snuggle.music.constants.DownloadQuality.YOUTUBE
+                            0 -> com.snuggle.music.constants.DownloadQuality.LOW
+                            2 -> com.snuggle.music.constants.DownloadQuality.HIGH
+                            else -> com.snuggle.music.constants.DownloadQuality.MEDIUM
                         }
                         onDownloadQualityChange(newQuality)
                     },

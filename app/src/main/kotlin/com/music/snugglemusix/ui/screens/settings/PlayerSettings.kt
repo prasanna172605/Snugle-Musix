@@ -92,7 +92,7 @@ highlightKey: String? = null) {
 
     val (audioQuality, onAudioQualityChange) = rememberEnumPreference(
         AudioQualityKey,
-        defaultValue = AudioQuality.OPUS
+        defaultValue = AudioQuality.MEDIUM
     )
     val (showAudioFallbackToast, onShowAudioFallbackToastChange) = rememberPreference(
         ShowAudioFallbackToastKey,
@@ -232,7 +232,7 @@ highlightKey: String? = null) {
 
     val (downloadQuality, onDownloadQualityChange) = rememberEnumPreference(
         com.snuggle.music.constants.DownloadQualityKey,
-        defaultValue = com.snuggle.music.constants.DownloadQuality.YOUTUBE
+        defaultValue = com.snuggle.music.constants.DownloadQuality.MEDIUM
     )
 
     if (showAudioQualityDialog) {
@@ -240,20 +240,17 @@ highlightKey: String? = null) {
             onDismiss = { showAudioQualityDialog = false },
             onSelect = {
                 onAudioQualityChange(it)
-                if (it == AudioQuality.LOSSLESS && crossfadeEnabled) {
-                    onCrossfadeEnabledChange(false)
-                    android.widget.Toast.makeText(context, "Crossfade has been turned off for Lossless playback", android.widget.Toast.LENGTH_SHORT).show()
-                }
+
                 showAudioQualityDialog = false
             },
             title = stringResource(R.string.audio_quality),
             current = audioQuality,
-            values = AudioQuality.values().filter { com.snuggle.music.constants.LOSSLESS_ENABLED || it != AudioQuality.LOSSLESS },
+            values = AudioQuality.values().toList(),
             valueText = {
                 when (it) {
-                    AudioQuality.OPUS -> "Opus"
-                    AudioQuality.SAAVN -> "Saavn (320kbps)"
-                    AudioQuality.LOSSLESS -> "Lossless (Unavailable currently)"
+                    AudioQuality.LOW -> "Low (66kbps)"
+                    AudioQuality.MEDIUM -> "Medium (129kbps)"
+                    AudioQuality.HIGH -> "High (256kbps / Premium)"
                 }
             }
         )
@@ -268,12 +265,12 @@ highlightKey: String? = null) {
             },
             title = stringResource(R.string.download_quality_title),
             current = downloadQuality,
-            values = com.snuggle.music.constants.DownloadQuality.values().filter { com.snuggle.music.constants.LOSSLESS_ENABLED || it != com.snuggle.music.constants.DownloadQuality.LOSSLESS },
+            values = com.snuggle.music.constants.DownloadQuality.values().toList(),
             valueText = {
                 when (it) {
-                    com.snuggle.music.constants.DownloadQuality.YOUTUBE -> "YouTube Music (AAC/Default)"
-                    com.snuggle.music.constants.DownloadQuality.SAAVN -> "Saavn (320kbps)"
-                    com.snuggle.music.constants.DownloadQuality.LOSSLESS -> "Lossless (Unavailable currently)"
+                    com.snuggle.music.constants.DownloadQuality.LOW -> "Low (66kbps)"
+                    com.snuggle.music.constants.DownloadQuality.MEDIUM -> "Medium (129kbps)"
+                    com.snuggle.music.constants.DownloadQuality.HIGH -> "High (256kbps / Premium)"
                 }
             }
         )
@@ -334,9 +331,9 @@ highlightKey: String? = null) {
                     description = {
                         Text(
                             when (audioQuality) {
-                                AudioQuality.OPUS -> "Opus"
-                                AudioQuality.SAAVN -> "Saavn (320kbps)"
-                                AudioQuality.LOSSLESS -> "Lossless (Unavailable currently)"
+                                AudioQuality.LOW -> "Low (66kbps)"
+                                AudioQuality.MEDIUM -> "Medium (129kbps)"
+                                AudioQuality.HIGH -> "High (256kbps / Premium)"
                             }
                         )
                     },
@@ -372,9 +369,9 @@ highlightKey: String? = null) {
                     description = {
                         Text(
                             when (downloadQuality) {
-                                com.snuggle.music.constants.DownloadQuality.YOUTUBE -> "YouTube Music (AAC/Default)"
-                                com.snuggle.music.constants.DownloadQuality.SAAVN -> "Saavn (320kbps)"
-                                com.snuggle.music.constants.DownloadQuality.LOSSLESS -> "Lossless (Unavailable currently)"
+                                com.snuggle.music.constants.DownloadQuality.LOW -> "Low (66kbps)"
+                                com.snuggle.music.constants.DownloadQuality.MEDIUM -> "Medium (129kbps)"
+                                com.snuggle.music.constants.DownloadQuality.HIGH -> "High (256kbps / Premium)"
                             }
                         )
                     },
@@ -382,7 +379,7 @@ highlightKey: String? = null) {
                 ))
 
 
-                val isLosslessSelected = audioQuality == AudioQuality.LOSSLESS
+                val isLosslessSelected = audioQuality == AudioQuality.HIGH
                 add(Material3SettingsItem(
     isHighlighted = (highlightKey == stringResource(R.string.crossfade)),
                     icon = painterResource(R.drawable.linear_scale),

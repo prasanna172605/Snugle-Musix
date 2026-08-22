@@ -65,7 +65,7 @@ constructor(
     @PlayerCache val playerCache: SimpleCache,
 ) {
     private val connectivityManager = context.getSystemService<ConnectivityManager>()!!
-    private val downloadQuality by enumPreference(context, com.snuggle.music.constants.DownloadQualityKey, com.snuggle.music.constants.DownloadQuality.YOUTUBE)
+    private val downloadQuality by enumPreference(context, com.snuggle.music.constants.DownloadQualityKey, com.snuggle.music.constants.DownloadQuality.MEDIUM)
     private val ipVersion by enumPreference(context, IpVersionKey, IpVersion.AUTO)
     private val songUrlCache = HashMap<String, Pair<String, Long>>()
 
@@ -108,9 +108,9 @@ constructor(
                 YTPlayerUtils.playerResponseForPlayback(
                     mediaId,
                     audioQuality = when (downloadQuality) {
-                        com.snuggle.music.constants.DownloadQuality.LOSSLESS -> AudioQuality.LOSSLESS
-                        com.snuggle.music.constants.DownloadQuality.SAAVN -> AudioQuality.SAAVN
-                        else -> AudioQuality.OPUS
+                        com.snuggle.music.constants.DownloadQuality.HIGH -> AudioQuality.HIGH
+                        com.snuggle.music.constants.DownloadQuality.MEDIUM -> AudioQuality.MEDIUM
+                        else -> AudioQuality.LOW
                     },
                     connectivityManager = connectivityManager,
                     context = context,

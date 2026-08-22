@@ -112,7 +112,7 @@ object YTPlayerUtils {
     suspend fun playerResponseForPlayback(
         videoId: String,
         playlistId: String? = null,
-        audioQuality: AudioQuality,
+        audioQuality: AudioQuality = AudioQuality.MEDIUM,
         connectivityManager: ConnectivityManager,
         context: android.content.Context? = null,
         knownArtist: String? = null,
@@ -126,9 +126,9 @@ object YTPlayerUtils {
 
         var hasShownLosslessToast = false
         var hasShownSaavnToast = false
-        var hasShownOpusToast = false
+        var hasShownYouTubeToast = false
 
-        suspend fun tryOpus(): Result<PlaybackData> {
+        suspend fun tryYouTube(): Result<PlaybackData> {
             val firstAttempt = resolvePlaybackData(videoId, playlistId, audioQuality, connectivityManager)
             if (firstAttempt.isFailure && YouTube.cookie == null) {
                 Timber.tag(TAG).w("Playback failed for guest. Rotating session and retrying...")
@@ -411,39 +411,39 @@ object YTPlayerUtils {
         }
 
         return when (audioQuality) {
-            AudioQuality.LOSSLESS -> {
+            AudioQuality.HIGH -> {
                 Timber.tag(TAG).d("Qobuz is offline. Directly falling back to Saavn...")
                 val saavnRes = trySaavn()
                 if (saavnRes.isSuccess) return saavnRes
 
-                Timber.tag(TAG).e("Saavn resolution failed, falling back to YouTube Opus")
+                Timber.tag(TAG).e("Saavn resolution failed, falling back to YouTube YouTube")
                 if (!hasShownSaavnToast) {
                     hasShownSaavnToast = true
-                    showToastMsg(if (isDownload) "Lossless & Saavn unavailable, downloading Opus" else "Lossless & Saavn unavailable, playing Opus")
+                    showToastMsg(if (isDownload) "Lossless & Saavn unavailable, downloading YouTube" else "Lossless & Saavn unavailable, playing YouTube")
                 }
 
-                tryOpus()
+                tryYouTube()
             }
-            AudioQuality.SAAVN -> {
+            AudioQuality.HIGH -> {
                 val saavnRes = trySaavn()
                 if (saavnRes.isSuccess) return saavnRes
 
-                Timber.tag(TAG).e("Saavn resolution failed, falling back to YouTube Opus")
+                Timber.tag(TAG).e("Saavn resolution failed, falling back to YouTube YouTube")
                 if (!hasShownSaavnToast) {
                     hasShownSaavnToast = true
-                    showToastMsg(if (isDownload) "Saavn unavailable, downloading Opus" else "Saavn unavailable, playing Opus")
+                    showToastMsg(if (isDownload) "Saavn unavailable, downloading YouTube" else "Saavn unavailable, playing YouTube")
                 }
 
-                tryOpus()
+                tryYouTube()
             }
             else -> {
-                val opusRes = tryOpus()
-                if (opusRes.isSuccess) return opusRes
+                val youtubeRes = tryYouTube()
+                if (youtubeRes.isSuccess) return youtubeRes
 
-                Timber.tag(TAG).e("Opus resolution failed, falling back to Saavn")
-                if (!hasShownOpusToast) {
-                    hasShownOpusToast = true
-                    showToastMsg(if (isDownload) "Opus unavailable, downloading Saavn" else "Opus unavailable, playing Saavn")
+                Timber.tag(TAG).e("YouTube resolution failed, falling back to Saavn")
+                if (!hasShownYouTubeToast) {
+                    hasShownYouTubeToast = true
+                    showToastMsg(if (isDownload) "YouTube unavailable, downloading Saavn" else "YouTube unavailable, playing Saavn")
                 }
 
                 trySaavn()
@@ -454,7 +454,7 @@ object YTPlayerUtils {
     private suspend fun resolvePlaybackData(
         videoId: String,
         playlistId: String? = null,
-        audioQuality: AudioQuality,
+        audioQuality: AudioQuality = AudioQuality.MEDIUM,
         connectivityManager: ConnectivityManager,
     ): Result<PlaybackData> = runCatching {
         Timber.tag(logTag).d("Fetching player response for videoId: $videoId, playlistId: $playlistId")
@@ -821,17 +821,21 @@ object YTPlayerUtils {
 
     private fun findFormat(
         playerResponse: PlayerResponse,
-        audioQuality: AudioQuality,
+        audioQuality: AudioQuality = AudioQuality.MEDIUM,
         connectivityManager: ConnectivityManager,
     ): PlayerResponse.StreamingData.Format? {
         Timber.tag(logTag).d("Finding format with audioQuality: $audioQuality, network metered: ${connectivityManager.isActiveNetworkMetered}")
 
         val format = playerResponse.streamingData?.adaptiveFormats
             ?.filter { it.isAudio && it.isOriginal }
-            ?.maxByOrNull {
-                it.bitrate * when (audioQuality) {
-                    AudioQuality.OPUS, AudioQuality.SAAVN, AudioQuality.LOSSLESS -> 1
-                } + (if (it.mimeType.startsWith("audio/webm")) 10240 else 0) 
+            ?.minByOrNull {
+                val targetBitrate = when (audioQuality) {
+                    AudioQuality.LOW -> 66_000
+                    AudioQuality.MEDIUM -> 129_000
+                    AudioQuality.HIGH -> 256_000
+                }
+                // Minimize distance from target bitrate
+                kotlin.math.abs(it.bitrate - targetBitrate)
             }
 
         if (format != null) {

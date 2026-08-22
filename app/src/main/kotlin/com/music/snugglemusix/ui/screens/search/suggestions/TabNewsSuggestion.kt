@@ -75,7 +75,7 @@ fun SuggestionsTabContent(
     val context = LocalContext.current
     val (regionCode, _) = rememberPreference(
         key = SuggestionRegionKey,
-        defaultValue = "system"
+        defaultValue = "in"
     )
 
     androidx.compose.runtime.LaunchedEffect(regionCode) {

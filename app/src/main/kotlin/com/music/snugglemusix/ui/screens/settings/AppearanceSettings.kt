@@ -127,6 +127,8 @@ import com.snuggle.music.constants.LyricsScrollKey
 import com.snuggle.music.constants.HideStatusBarOnFullscreenKey
 import com.snuggle.music.constants.MiniPlayerBackgroundStyleKey
 import com.snuggle.music.constants.UseNewMiniPlayerDesignKey
+import com.snuggle.music.constants.UseClassicNavigationBarKey
+import com.snuggle.music.constants.UseLiquidGlassUiKey
 import com.snuggle.music.constants.ShowCommentButtonKey
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -181,6 +183,8 @@ highlightKey: String? = null) {
         rememberEnumPreference(PlayerBackgroundStyleKey, defaultValue = PlayerBackgroundStyle.APPLE_MUSIC,
         )
     val (useNewMiniPlayerDesign, onUseNewMiniPlayerDesignChange) = rememberPreference(UseNewMiniPlayerDesignKey, defaultValue = true)
+    val (useClassicNavigationBar, onUseClassicNavigationBarChange) = rememberPreference(UseClassicNavigationBarKey, defaultValue = false)
+    val (useLiquidGlassUi, onUseLiquidGlassUiChange) = rememberPreference(UseLiquidGlassUiKey, defaultValue = true)
     val (miniPlayerBackground, onMiniPlayerBackgroundChange) =
         rememberEnumPreference(
             MiniPlayerBackgroundStyleKey,
@@ -206,7 +210,7 @@ highlightKey: String? = null) {
     )
     val (lyricsAnimationStyle, onLyricsAnimationStyleChange) = rememberEnumPreference(
         LyricsAnimationStyleKey,
-        defaultValue = LyricsAnimationStyle.echomusic_1
+        defaultValue = LyricsAnimationStyle.APPLE
     )
     val (lyricsTextSize, onLyricsTextSizeChange) = rememberPreference(LyricsTextSizeKey, defaultValue = 24f)
     val (lyricsLineSpacing, onLyricsLineSpacingChange) = rememberPreference(LyricsLineSpacingKey, defaultValue = 1.3f)
@@ -1069,6 +1073,54 @@ highlightKey: String? = null) {
                             )
                         },
                         onClick = { onUseNewMiniPlayerDesignChange(!(!useNewMiniPlayerDesign)) }
+                    )
+                )
+                add(
+                    Material3SettingsItem(
+                        isHighlighted = (highlightKey == "Use Classic Navigation Bar"),
+                        icon = painterResource(R.drawable.settings),
+                        title = { Text("Classic Navigation Bar") },
+                        description = { Text("Display traditional fixed bottom navbar instead of floating toolbar") },
+                        trailingContent = {
+                            Switch(
+                                checked = useClassicNavigationBar,
+                                onCheckedChange = onUseClassicNavigationBarChange,
+                                thumbContent = {
+                                    Icon(
+                                        painter = painterResource(
+                                            id = if (useClassicNavigationBar) R.drawable.check else R.drawable.close
+                                        ),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(SwitchDefaults.IconSize)
+                                    )
+                                }
+                            )
+                        },
+                        onClick = { onUseClassicNavigationBarChange(!useClassicNavigationBar) }
+                    )
+                )
+                add(
+                    Material3SettingsItem(
+                        isHighlighted = (highlightKey == "Use Apple Liquid Glass UI"),
+                        icon = painterResource(R.drawable.palette),
+                        title = { Text("Apple Liquid Glass UI") },
+                        description = { Text("Enable Apple fluid glass reflection on floating bar and miniplayer") },
+                        trailingContent = {
+                            Switch(
+                                checked = useLiquidGlassUi,
+                                onCheckedChange = onUseLiquidGlassUiChange,
+                                thumbContent = {
+                                    Icon(
+                                        painter = painterResource(
+                                            id = if (useLiquidGlassUi) R.drawable.check else R.drawable.close
+                                        ),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(SwitchDefaults.IconSize)
+                                    )
+                                }
+                            )
+                        },
+                        onClick = { onUseLiquidGlassUiChange(!useLiquidGlassUi) }
                     )
                 )
                 add(

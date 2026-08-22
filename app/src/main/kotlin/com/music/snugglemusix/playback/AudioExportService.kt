@@ -66,7 +66,7 @@ class AudioExportService : Service() {
                 ?: error("No connectivity manager")
             val playbackData = YTPlayerUtils.playerResponseForPlayback(
                 videoId = songId,
-                audioQuality = AudioQuality.OPUS,
+                audioQuality = AudioQuality.LOW,
                 connectivityManager = connectivityManager,
             ).getOrThrow()
             val year = YouTube.getMediaInfo(songId)

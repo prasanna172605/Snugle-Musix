@@ -45,10 +45,8 @@ class SuggestionsViewModel @Inject constructor() : ViewModel() {
     private val _isManualLoading = MutableStateFlow(false)
     val isManualLoading: StateFlow<Boolean> = _isManualLoading
 
-    fun refresh(countryCode: String = "system", force: Boolean = false) {
-        val resolvedCode = if (countryCode == "system") {
-            java.util.Locale.getDefault().country.lowercase()
-        } else {
+    fun refresh(countryCode: String = "in", force: Boolean = false) {
+        val resolvedCode = if (countryCode == "system" || countryCode == "in") { "in" } else {
             countryCode.lowercase()
         }
 

@@ -332,10 +332,14 @@ fun WelcomePagerScreen(onFinished: () -> Unit) {
                     Spacer(modifier = Modifier.height(24.dp))
 
                     val (customUsername, onCustomUsernameChange) = rememberPreference(CustomUsernameKey, "")
+                    var localInputVal by remember { mutableStateOf(customUsername) }
                     
                     OutlinedTextField(
-                        value = customUsername,
-                        onValueChange = { onCustomUsernameChange(it) },
+                        value = localInputVal,
+                        onValueChange = { 
+                            localInputVal = it
+                            onCustomUsernameChange(it) 
+                        },
                         label = { Text("Enter your name", fontFamily = GoogleSansFlex) },
                         placeholder = { Text("Guest", fontFamily = GoogleSansFlex) },
                         singleLine = true,

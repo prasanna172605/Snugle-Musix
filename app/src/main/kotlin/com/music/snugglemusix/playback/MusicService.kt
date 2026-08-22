@@ -157,6 +157,7 @@ import com.snuggle.music.playback.queues.Queue
 import com.snuggle.music.playback.queues.YouTubeQueue
 import com.snuggle.music.playback.queues.filterExplicit
 import com.snuggle.music.playback.queues.filterVideoSongs
+import com.snuggle.music.playback.queues.filterByQueueLanguage
 import com.snuggle.music.utils.CoilBitmapLoader
 import com.snuggle.music.ui.screens.settings.DiscordPresenceManager
 import com.snuggle.music.utils.NetworkConnectivityObserver
@@ -507,7 +508,7 @@ class MusicService :
 
         audioManager.registerAudioDeviceCallback(audioDeviceCallback, null)
 
-        audioQuality = dataStore.get(AudioQualityKey).toEnum(com.snuggle.music.constants.AudioQuality.OPUS)
+        audioQuality = dataStore.get(AudioQualityKey).toEnum(com.snuggle.music.constants.AudioQuality.MEDIUM)
         ipVersion = dataStore.get(IpVersionKey).toEnum(IpVersion.AUTO)
         playerVolume = MutableStateFlow(dataStore.get(PlayerVolumeKey, 1f).coerceIn(0f, 1f))
 
@@ -572,7 +573,7 @@ class MusicService :
             dataStore.data
                 .map { it[AudioQualityKey]?.let { value ->
                     com.snuggle.music.constants.AudioQuality.entries.find { it.name == value }
-                } ?: com.snuggle.music.constants.AudioQuality.OPUS }
+                } ?: com.snuggle.music.constants.AudioQuality.MEDIUM }
                 .distinctUntilChanged()
                 .collect { newQuality ->
                     val oldQuality = audioQuality
@@ -2634,22 +2635,22 @@ class MusicService :
             
             val lockedQuality = if (isCurrentlyPlaying && dbFormat != null) {
                 when {
-                    dbFormat.mimeType.contains("flac", ignoreCase = true) -> com.snuggle.music.constants.AudioQuality.LOSSLESS
-                    dbFormat.mimeType.contains("mp4", ignoreCase = true) || dbFormat.mimeType.contains("m4a", ignoreCase = true) -> com.snuggle.music.constants.AudioQuality.SAAVN
-                    else -> com.snuggle.music.constants.AudioQuality.OPUS
+                    dbFormat.bitrate >= 250_000 -> com.snuggle.music.constants.AudioQuality.HIGH
+                    dbFormat.bitrate in 120_000..250_000 -> com.snuggle.music.constants.AudioQuality.MEDIUM
+                    else -> com.snuggle.music.constants.AudioQuality.LOW
                 }
             } else {
                 audioQuality
             }
 
             if (!shouldBypassCache && !isFullyDownloaded && dbFormat != null) {
-                val isLosslessCache = dbFormat.codecs == "flac"
-                val isSaavnCache = dbFormat.codecs == "mp4a.40.2" || dbFormat.mimeType.contains("mp4", ignoreCase = true)
+                val isHighCache = dbFormat.bitrate >= 250_000
+                val isMediumCache = dbFormat.bitrate in 120_000..250_000
                 
                 val cacheMatchesTarget = when (lockedQuality) {
-                    com.snuggle.music.constants.AudioQuality.LOSSLESS -> isLosslessCache
-                    com.snuggle.music.constants.AudioQuality.SAAVN -> isSaavnCache
-                    com.snuggle.music.constants.AudioQuality.OPUS -> !isLosslessCache && !isSaavnCache
+                    com.snuggle.music.constants.AudioQuality.HIGH -> isHighCache
+                    com.snuggle.music.constants.AudioQuality.MEDIUM -> isMediumCache
+                    com.snuggle.music.constants.AudioQuality.LOW -> !isHighCache && !isMediumCache
                 }
                 
                 if (!cacheMatchesTarget) {
