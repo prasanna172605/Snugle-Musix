@@ -27,7 +27,7 @@
     <string name="most_played_artists">Οι πιο πολυπαιγμένοι καλλιτέχνες</string>
     <string name="most_played_albums">Τα πιο πολυπαιγμένα άλμπουμ</string>
     <string name="search">Αναζήτηση</string>
-    <string name="search_yt_music">Αναζήτηση Μουσικής YouTube…</string>
+    <string name="search_yt_music">Search for musics…</string>
     <string name="search_library">Αναζήτηση βιβλιοθήκης…</string>
     <string name="filter_library">Βιβλιοθήκη</string>
     <string name="filter_liked">Αγαπημένα</string>

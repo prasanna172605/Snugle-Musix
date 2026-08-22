@@ -75,6 +75,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.snuggle.music.R
 import com.snuggle.music.ui.screens.Screens
+import com.snuggle.music.utils.rememberPreference
+import com.snuggle.music.ui.theme.liquidGlass
+import com.snuggle.music.constants.UseLiquidGlassUiKey
 
 @Composable
 fun FloatingNavigationToolbar(
@@ -97,6 +100,7 @@ fun FloatingNavigationToolbar(
     onItemClick: (Screens, Boolean) -> Unit,
 ) {
     val toolbarContainerColor = floatingToolbarContainerColor(pureBlack = pureBlack)
+    val useLiquidGlassUi by rememberPreference(UseLiquidGlassUiKey, defaultValue = true)
     val toolbarColors = FloatingToolbarDefaults.standardFloatingToolbarColors(
         toolbarContainerColor = toolbarContainerColor,
     )
@@ -120,7 +124,7 @@ fun FloatingNavigationToolbar(
                         shuffleContentDescription = shuffleContentDescription,
                     )
                 },
-                modifier = Modifier.widthIn(max = 480.dp),
+                modifier = Modifier.widthIn(max = 480.dp).then(if (useLiquidGlassUi) Modifier.liquidGlass(cornerRadius = 28.dp, tintAlpha = 0.07f) else Modifier),
                 colors = toolbarColors,
                 scrollBehavior = scrollBehavior,
                 animationSpec = FloatingToolbarDefaults.animationSpec(),
@@ -146,7 +150,7 @@ fun FloatingNavigationToolbar(
                         contentDescription = fabContentDescription,
                     )
                 },
-                modifier = Modifier.widthIn(max = 480.dp),
+                modifier = Modifier.widthIn(max = 480.dp).then(if (useLiquidGlassUi) Modifier.liquidGlass(cornerRadius = 28.dp, tintAlpha = 0.07f) else Modifier),
                 colors = toolbarColors,
                 scrollBehavior = scrollBehavior,
                 animationSpec = FloatingToolbarDefaults.animationSpec(),

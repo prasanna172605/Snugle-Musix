@@ -47,7 +47,7 @@
 
     <!-- Search -->
     <string name="search">جستجو</string>
-    <string name="search_yt_music">جستجو در یوتیوب موزیک…</string>
+    <string name="search_yt_music">Search for musics…</string>
     <string name="search_library">جستجو در کتابخانه…</string>
     <string name="filter_library">کتابخانه</string>
     <string name="filter_liked">پسندیده شده</string>

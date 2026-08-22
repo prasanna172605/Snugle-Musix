@@ -522,6 +522,9 @@ class HomeViewModel @Inject constructor(
             launch(Dispatchers.IO) { getCommunityPlaylists() }
             launch(Dispatchers.IO) { loadSimilarRecommendations() }
             launch(Dispatchers.IO) {
+                // Set Tamil/India locale for Tamil-focused home feed
+                val originalLocale = YouTube.locale
+                YouTube.locale = com.music.innertube.models.YouTubeLocale(gl = "IN", hl = "ta")
                 YouTube.home().onSuccess { page ->
                     homePage.value = page.copy(
                         sections = page.sections.mapNotNull { section ->
@@ -533,6 +536,8 @@ class HomeViewModel @Inject constructor(
                         }
                     )
                 }.onFailure { reportException(it) }
+                // Restore original locale after home fetch
+                YouTube.locale = originalLocale
             }
             launch(Dispatchers.IO) {
                 YouTube.explore().onSuccess { page ->

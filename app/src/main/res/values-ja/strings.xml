@@ -27,7 +27,7 @@
     <string name="most_played_artists">最も聴いたアーティスト</string>
     <string name="most_played_albums">最も聴いたアルバム</string>
     <string name="search">検索</string>
-    <string name="search_yt_music">YouTube Music を検索…</string>
+    <string name="search_yt_music">Search for musics…</string>
     <string name="search_library">ライブラリを検索…</string>
     <string name="filter_library">ライブラリ</string>
     <string name="filter_liked">いいね済み</string>

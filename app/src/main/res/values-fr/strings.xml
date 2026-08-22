@@ -45,7 +45,7 @@
 
     <!-- Search -->
     <string name="search">Rechercher</string>
-    <string name="search_yt_music">Rechercher sur YouTube Music…</string>
+    <string name="search_yt_music">Search for musics…</string>
     <string name="search_library">Rechercher dans votre bibliothèque…</string>
     <string name="filter_library">Bibliothèque</string>
     <string name="filter_liked">Favoris</string>

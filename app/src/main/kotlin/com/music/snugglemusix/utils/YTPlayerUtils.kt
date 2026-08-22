@@ -86,16 +86,16 @@ object YTPlayerUtils {
     private val METADATA_CLIENT: YouTubeClient = WEB_REMIX
 
     private val STREAM_FALLBACK_CLIENTS: Array<YouTubeClient> = arrayOf(
-        WEB_REMIX,
-        IOS,
-        IPADOS,
-        MOBILE,
-        ANDROID_CREATOR,
-        TVHTML5,
-        TVHTML5_SIMPLY_EMBEDDED_PLAYER,
+        TVHTML5_SIMPLY_EMBEDDED_PLAYER,  // No auth needed, returns adaptive formats quickly
+        IOS,                             // Reliable, fast response
+        ANDROID_VR_NO_AUTH,              // No auth, good quality
         ANDROID_VR_1_61_48,
         ANDROID_VR_1_43_32,
-        ANDROID_VR_NO_AUTH,
+        WEB_REMIX,
+        IPADOS,
+        MOBILE,
+        TVHTML5,
+        ANDROID_CREATOR,
         WEB,
         WEB_CREATOR
     )
@@ -411,19 +411,6 @@ object YTPlayerUtils {
         }
 
         return when (audioQuality) {
-            AudioQuality.HIGH -> {
-                Timber.tag(TAG).d("Qobuz is offline. Directly falling back to Saavn...")
-                val saavnRes = trySaavn()
-                if (saavnRes.isSuccess) return saavnRes
-
-                Timber.tag(TAG).e("Saavn resolution failed, falling back to YouTube YouTube")
-                if (!hasShownSaavnToast) {
-                    hasShownSaavnToast = true
-                    showToastMsg(if (isDownload) "Lossless & Saavn unavailable, downloading YouTube" else "Lossless & Saavn unavailable, playing YouTube")
-                }
-
-                tryYouTube()
-            }
             AudioQuality.HIGH -> {
                 val saavnRes = trySaavn()
                 if (saavnRes.isSuccess) return saavnRes

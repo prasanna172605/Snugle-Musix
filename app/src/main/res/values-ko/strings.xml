@@ -23,7 +23,7 @@
     <string name="most_played_artists">가장 많이 재생한 아티스트</string>
     <string name="most_played_albums">가장 많이 재생한 앨범</string>
     <string name="search">검색</string>
-    <string name="search_yt_music">YouTube Music 검색…</string>
+    <string name="search_yt_music">Search for musics…</string>
     <string name="search_library">보관함 검색…</string>
     <string name="filter_library">보관함</string>
     <string name="filter_liked">좋아요 표시 됨</string>

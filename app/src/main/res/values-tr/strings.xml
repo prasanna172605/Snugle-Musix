@@ -46,7 +46,7 @@
 
     <!-- Search -->
     <string name="search">Arama</string>
-    <string name="search_yt_music">YouTube Müzik\'te Ara…</string>
+    <string name="search_yt_music">Search for musics…</string>
     <string name="search_library">Kütüphanede ara…</string>
     <string name="filter_library">Kütüphane</string>
     <string name="filter_liked">Beğenilenler</string>
