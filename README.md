@@ -125,14 +125,6 @@ To compile the FOSS or GMS variant locally:
 
 ---
 
-## 🤝 Project Acknowledgements
-
-Snuggle Musix is proudly open-source. Special thanks to these exceptional projects:
-* [Metrolist](https://github.com/MetrolistGroup/Metrolist) & [Vivi Music](https://github.com/vivizzz007/vivi-music) - Foundational project layout guidelines and architecture.
-* [ArchiveTune](https://github.com/koiverse/ArchiveTune) - Aesthetic design concepts.
-* [Better Lyrics](https://better-lyrics.boidu.dev/) & [SimpMusic](https://github.com/maxrave-dev/SimpMusic) - Sub-second lyrics sync logic.
-* [Music Recognizer](https://github.com/aleksey-saenko/MusicRecognizer) - On-device audio fingerprinting.
-
 ---
 
 <p align="center">
