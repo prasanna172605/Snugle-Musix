@@ -1,0 +1,22 @@
+version: 2
+updates:
+  # Disable automatic action updates — we control versions manually
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"   # Monthly instead of daily/weekly to reduce noise
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "build(deps)"
+    ignore:
+      # Pin to v4 for all common actions to avoid constant updates
+      - dependency-name: "actions/checkout"
+        versions: [">=5"]
+      - dependency-name: "actions/setup-java"
+        versions: [">=5"]
+      - dependency-name: "actions/cache"
+        versions: [">=5"]
+      - dependency-name: "actions/upload-artifact"
+        versions: [">=5"]
