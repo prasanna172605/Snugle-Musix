@@ -1,140 +1,141 @@
-# <img src="assets/Snuggle-new.png" width="36" align="center" /> Snuggle Musix
+<div align="center">
 
-A highly personalized, privacy-first Android music player featuring ad-free streaming, local playback, synced word-by-word lyrics, and smart, context-aware automation.
+<img src="assets/Snuggle-new.png" alt="Snuggle Musix Logo" width="100" />
 
----
+# Snuggle Musix
 
-<p align="center">
-  <a href="https://github.com/prasanna172605/Snugle-Musix/releases/latest">
-    <img src="https://img.shields.io/github/v/release/prasanna172605/Snugle-Musix?style=for-the-badge&color=8c52ff&logo=github" alt="Latest Release" />
-  </a>
-  <a href="https://github.com/prasanna172605/Snugle-Musix/stargazers">
-    <img src="https://img.shields.io/github/stars/prasanna172605/Snugle-Musix?style=for-the-badge&color=ffb703&logo=github" alt="Stars" />
-  </a>
-  <a href="LICENSE">
-    <img src="https://img.shields.io/github/license/prasanna172605/Snugle-Musix?style=for-the-badge&color=2ec4b6" alt="License" />
-  </a>
-</p>
+### A free, open-source music player for Android.
 
-<p align="center">
-  <a href="https://prasanna0705.netlify.app/Snuggle-Musix">
-    <img src="assets/download.png" alt="Download APK" width="160"/>
-  </a>
-  &nbsp;&nbsp;
-  <a href="https://github.com/prasanna172605/Snugle-Musix/releases/latest">
-    <img src="assets/obtainium.png" alt="Get on Obtainium" width="160"/>
-  </a>
-</p>
+A modern music listening experience built around Material 3, personalisation, and powerful playback features.
+
+[![Website](https://img.shields.io/badge/Website-prasanna0705.netlify.app-FF3366?style=for-the-badge&logo=googlechrome&logoColor=white)](https://prasanna0705.netlify.app/Snuggle-Musix)
+[![Latest Release](https://img.shields.io/github/v/release/prasanna172605/Snugle-Musix?style=for-the-badge&color=8c52ff&logo=github)](https://github.com/prasanna172605/Snugle-Musix/releases/latest)
+[![License](https://img.shields.io/badge/License-GPL%20v3-blue?style=for-the-badge)](LICENSE)
+
+</div>
 
 ---
 
-## 🎨 Premium Experience, Uncompromising Freedom
+## Overview
 
-Unlike generic music clients, **Snuggle Musix** bridges high-fidelity online streaming with your local library through a custom-built, modern interface. Built on top of robust architecture, it eliminates interruptions, tracks, and bloated subscriptions.
+**Snuggle Musix** is a free, open-source music player for Android designed around a modern Material 3 experience. It combines clean visual design with rich audio playback capabilities, giving you full control over your listening experience with zero advertisements and zero invasive telemetry.
 
-### 📸 Visual Walkthrough
+Whether streaming your favorite tracks or playing local audio files, Snuggle Musix delivers high fidelity sound, real-time synchronized lyrics, and personalized themes that adapt to your device.
+
+---
+
+## Screenshots
 
 <div align="center">
   <table>
     <tr>
-      <td align="center" valign="top" width="33%">
-        <b>Home Screen</b><br/><br/>
-        <img src="Screenshots/Homepage.jpeg" width="220" style="border-radius:12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
-      </td>
-      <td align="center" valign="top" width="33%">
-        <b>Premium Player</b><br/><br/>
-        <img src="Screenshots/Music%20Player.jpeg" width="220" style="border-radius:12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
-      </td>
-      <td align="center" valign="top" width="33%">
-        <b>Word-by-Word Lyrics</b><br/><br/>
-        <img src="Screenshots/Synchronized%20lyrics.jpeg" width="220" style="border-radius:12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
-      </td>
+      <td align="center"><b>Home</b></td>
+      <td align="center"><b>Now Playing</b></td>
+      <td align="center"><b>Synced Lyrics</b></td>
     </tr>
     <tr>
-      <td align="center" valign="top" width="33%">
-        <b>Smart Search</b><br/><br/>
-        <img src="Screenshots/Search%20and%20Explore.jpeg" width="220" style="border-radius:12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
-      </td>
-      <td align="center" valign="top" width="33%">
-        <b>Library & Playlists</b><br/><br/>
-        <img src="Screenshots/Playlist%20%26%20library.jpeg" width="220" style="border-radius:12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
-      </td>
-      <td align="center" valign="top" width="33%">
-        <b>Snuggle Find</b><br/><br/>
-        <img src="Screenshots/Song%20recognition.jpeg" width="220" style="border-radius:12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
-      </td>
+      <td><img src="Screenshots/Homepage.jpeg" width="230" alt="Snuggle Musix Home" /></td>
+      <td><img src="Screenshots/Music Player.jpeg" width="230" alt="Snuggle Musix Player" /></td>
+      <td><img src="Screenshots/Synchronized lyrics.jpeg" width="230" alt="Snuggle Musix Lyrics" /></td>
+    </tr>
+    <tr>
+      <td align="center"><b>Search & Explore</b></td>
+      <td align="center"><b>Library & Playlists</b></td>
+      <td align="center"><b>Song Recognition</b></td>
+    </tr>
+    <tr>
+      <td><img src="Screenshots/Search and Explore.jpeg" width="230" alt="Snuggle Musix Search" /></td>
+      <td><img src="Screenshots/Playlist & library.jpeg" width="230" alt="Snuggle Musix Library" /></td>
+      <td><img src="Screenshots/Song recognition.jpeg" width="230" alt="Snuggle Musix Song Recognition" /></td>
     </tr>
   </table>
 </div>
 
 ---
 
-## ⚡ The Snuggle Musix Core Pillars
+## Features
 
-
-### 🔍 Snuggle Find
-Heard a song playing in your room or on a TV show? Instantly identify tracks playing around you via microphone fingerprinting, pulling up synced lyrics or adding it to your Snuggle Musix queue on the spot.
-
-### 👥 Listen Together
-Create real-time synchronized group listening sessions with friends. Perfect for long-distance movie nights, workouts, or workspace music sharing, featuring low-latency network syncing and instant QR-based connection invite codes.
-
-### 📜 Lyrics+ & Translations
-precise word-by-word synced scrolling, animated display states, and on-demand multilingual translations powered by local and cloud AI providers.
-
----
-
-## 🚀 Key Feature Checklist
-
-* **Zero Ads:** Complete uninterrupted playback.
-* **Hybrid Storage:** Play high-quality online streaming feeds or play local files (`.mp3`, `.m4a`, `.flac`) seamlessly.
-* **Smart Ringtones & Notifications:** Trim, download, and set any song as your default ringtone or notification sound directly.
-* **Dynamic Themes:** Adapts to your device wallpaper colors (Material You), with dark modes and custom Apple-inspired player interfaces.
-* **Spotify Integration:** Move your music catalog directly to Snuggle Musix by importing playlists in one tap.
+- **Material 3 & Liquid Glass UI**: Clean interface with dynamic color theming that adapts to your album artwork and system palette.
+- **Synchronized Lyrics**: Word-by-word, real-time synchronized lyrics with translation and romanization options.
+- **Audio Quality & Equalizer**: Pristine audio output with an integrated 10-band graphic equalizer, bass boost, and loudness enhancer.
+- **Offline Playback & Downloads**: Save tracks, albums, and playlists locally for high quality offline listening.
+- **Song Recognition**: Identify songs playing in your environment and jump straight to streaming.
+- **AI-Powered Voice Search**: Natural voice recognition to find songs, artists, and playlists hands-free.
+- **Listen Together**: Synchronize real-time playback across multiple devices with friends.
+- **Home Screen Widgets**: Multiple interactive Android widgets for quick playback control.
+- **100% Ad-Free & Privacy First**: No advertisements, no paywalls, and no tracking.
 
 ---
 
-## 🛠️ Build & Installation
+## Why Snuggle Musix?
 
-### Option 1: Direct Installation
-Grab the latest pre-compiled build from the [releases page](https://github.com/prasanna172605/Snugle-Musix/releases/latest) or check our [Official Download Webpage](https://prasanna0705.netlify.app/Snuggle-Musix).
+Snuggle Musix is built around a simple idea: music players should feel personal.
 
-### Option 2: Build From Source
-To compile the FOSS or GMS variant locally:
-
-1. **Clone the Repository**
-   ```bash
-   git clone https://github.com/prasanna172605/Snugle-Musix.git
-   cd Snugle-Musix
-   ```
-
-2. **Configure SDK Path**
-   Set up your Android SDK by creating a `local.properties` file in the root folder:
-   ```bash
-   echo "sdk.dir=/path/to/your/android/sdk" > local.properties
-   ```
-   *(For specific operating system paths, see [SETUP.md](SETUP.md))*
-
-3. **Build Target APK**
-   ```bash
-   # Build FOSS Debug Variant (No Play Services)
-   ./gradlew assembleUniversalFossDebug
-
-   # Build GMS Debug Variant (With Cast Support)
-   ./gradlew assembleUniversalGmsDebug
-   ```
+Many modern music apps have become cluttered with unwanted social feeds, intrusive advertisements, and rigid interfaces. Snuggle Musix focuses on thoughtful interaction design, fluid performance, audio customization, and giving users true ownership of their music listening experience.
 
 ---
 
-## 🤝 Project Acknowledgements
+## Tech Stack
 
-Snuggle Musix is proudly open-source. Special thanks to these exceptional projects:
-* [Metrolist](https://github.com/MetrolistGroup/Metrolist) & [Vivi Music](https://github.com/vivizzz007/vivi-music) - Foundational project layout guidelines and architecture.
-* [ArchiveTune](https://github.com/koiverse/ArchiveTune) - Aesthetic design concepts.
-* [Better Lyrics](https://better-lyrics.boidu.dev/) & [SimpMusic](https://github.com/maxrave-dev/SimpMusic) - Sub-second lyrics sync logic.
-* [Music Recognizer](https://github.com/aleksey-saenko/MusicRecognizer) - On-device audio fingerprinting.
+Snuggle Musix is built natively for Android using modern Android architecture components:
+
+- **Language**: [Kotlin](https://kotlinlang.org/)
+- **UI Framework**: [Jetpack Compose](https://developer.android.com/jetpack/compose) with Material 3 Design
+- **Media Playback Engine**: [AndroidX Media3](https://developer.android.com/guide/topics/media/media3) & ExoPlayer
+- **Database**: [Room](https://developer.android.com/training/data-storage/room) & SQLite
+- **Networking**: [Ktor](https://ktor.io/) & [OkHttp](https://square.github.io/okhttp/)
+- **Dependency Injection**: [Hilt](https://dagger.dev/hilt/)
+- **Image Loading**: [Coil](https://coil-kt.github.io/coil/)
+- **Audio Equalization**: Android Native AudioFx APIs
 
 ---
 
-<p align="center">
-  Made with ❤️ by Prasanna and Contributors.
-</p>
+## Download
+
+The latest pre-built APK is available directly on GitHub Releases:
+
+📦 **[Download Snuggle Musix APK](https://github.com/prasanna172605/Snugle-Musix/releases/latest)**
+
+You can also visit the official website: **[https://prasanna0705.netlify.app/Snuggle-Musix](https://prasanna0705.netlify.app/Snuggle-Musix)**
+
+---
+
+## Build from Source
+
+### Prerequisites
+- Android Studio Ladybug (or newer)
+- JDK 17 or JDK 21
+- Android SDK 35
+
+### Clone & Compile
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/prasanna172605/Snugle-Musix.git
+cd Snugle-Musix
+
+# 2. Build the debug APK
+./gradlew assembleDebug
+
+# 3. Output location
+# The generated APK will be located at:
+# app/build/outputs/apk/debug/app-debug.apk
+```
+
+---
+
+## Contributing
+
+Contributions, bug reports, and feature requests are welcome!
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+## License
+
+Snuggle Musix is licensed under the [GNU General Public License v3.0 (GPLv3)](LICENSE).
