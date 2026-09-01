@@ -32,7 +32,7 @@ object UpdateNotificationHelper {
 
         
         val apkUrl = if (versionName.contains("nightly", ignoreCase = true)) {
-            "https://nightly.link/prasanna172605/workflows/nightly.yml/main/echomusic-gms-nightly.zip"
+            "https://github.com/prasanna172605/Snugle-Musix/releases/latest"
         } else {
             "https://github.com/prasanna172605/Snugle-Musix/releases/download/$versionName/SnuggleMusix-${versionName.removePrefix("v")}-Universal.apk"
         }

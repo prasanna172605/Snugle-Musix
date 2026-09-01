@@ -276,9 +276,12 @@ private fun SpotifyLoginSheet(
                         cookieManager.setAcceptThirdPartyCookies(this, true)
                         settings.javaScriptEnabled = true
                         settings.domStorageEnabled = true
+                        settings.databaseEnabled = true
                         settings.setSupportZoom(true)
                         settings.builtInZoomControls = true
                         settings.displayZoomControls = false
+                        settings.userAgentString = "Mozilla/5.0 (Linux; Android 13; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+                        
                         webViewClient = object : WebViewClient() {
                             private fun captureCookies(url: String?): Boolean {
                                 if (captured) return true
@@ -294,7 +297,11 @@ private fun SpotifyLoginSheet(
                             override fun shouldOverrideUrlLoading(
                                 view: WebView,
                                 request: WebResourceRequest,
-                            ): Boolean = captureCookies(request.url?.toString())
+                            ): Boolean {
+                                val urlStr = request.url?.toString()
+                                if (captureCookies(urlStr)) return true
+                                return false
+                            }
 
                             override fun onPageStarted(
                                 view: WebView,
@@ -309,8 +316,6 @@ private fun SpotifyLoginSheet(
                             }
                         }
                         webView = this
-                        cookieManager.removeAllCookies(null)
-                        cookieManager.flush()
                         loadUrl(SpotifyAuth.LOGIN_URL)
                     }
                 },

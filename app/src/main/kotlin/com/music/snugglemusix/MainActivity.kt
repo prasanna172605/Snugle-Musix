@@ -41,6 +41,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -80,13 +81,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -409,28 +406,25 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(Unit) {
             val prefs = context.dataStore.data.first()
 
-            if (getAutoUpdateCheckSetting(context)) {
-                
-                delay(2000L)
-                checkForUpdate(
-                    context = context,
-                    onSuccess = { latestVersion, isAvailable, _, _, _, _, _, _ ->
-                        val currentVersion = BuildConfig.VERSION_NAME
-                        Log.d("UpdateCheck", "Startup check success. Latest: $latestVersion, Current: $currentVersion, isAvailable: $isAvailable")
-                        saveUpdateAvailableState(context, isAvailable)
-                        
-                        if (isAvailable) {
-                            if (getUpdateNotificationsSetting(context)) {
-                                Log.d("UpdateCheck", "Posting update notification for $latestVersion")
-                                UpdateNotificationHelper.showUpdateNotification(context, latestVersion)
-                            }
+            // Strict immediate update check on app launch
+            checkForUpdate(
+                context = context,
+                onSuccess = { latestVersion, isAvailable, _, _, _, _, _, _ ->
+                    val currentVersion = BuildConfig.VERSION_NAME
+                    Log.d("UpdateCheck", "Immediate startup check success. Latest: $latestVersion, Current: $currentVersion, isAvailable: $isAvailable")
+                    saveUpdateAvailableState(context, isAvailable)
+                    
+                    if (isAvailable) {
+                        if (getUpdateNotificationsSetting(context)) {
+                            Log.d("UpdateCheck", "Posting update notification for $latestVersion")
+                            UpdateNotificationHelper.showUpdateNotification(context, latestVersion)
                         }
-                    },
-                    onError = {
-                        Log.e("UpdateCheck", "Startup check failed")
                     }
-                )
-            }
+                },
+                onError = {
+                    Log.e("UpdateCheck", "Startup check failed")
+                }
+            )
         }
 
         LaunchedEffect(enableHighRefreshRate) {
@@ -1250,10 +1244,38 @@ class MainActivity : ComponentActivity() {
                     }
 
                     var showStrictUpdateDialog by remember { mutableStateOf(false) }
+                    var updateLatestVersion by remember { mutableStateOf("") }
+                    var updateChangelogText by remember { mutableStateOf<String?>(null) }
+
                     LaunchedEffect(Unit) {
-                        if (com.snuggle.music.snugglemusix.updater.getUpdateAvailableState(this@MainActivity)) {
-                            showStrictUpdateDialog = true
-                        }
+                        // Live check on open: strictly pop up ONLY if newer version is truly available
+                        checkForUpdate(
+                            context = this@MainActivity,
+                            onSuccess = { latestVersion, isAvailable, changelogList, _, _, description, _, _ ->
+                                saveUpdateAvailableState(this@MainActivity, isAvailable)
+                                if (isAvailable) {
+                                    updateLatestVersion = latestVersion
+                                    val summary = if (!description.isNullOrBlank()) {
+                                        description
+                                    } else if (changelogList.isNotEmpty()) {
+                                        changelogList.joinToString("\n\n") { sec ->
+                                            if (sec.items.isNotEmpty()) {
+                                                "${sec.title}:\n" + sec.items.joinToString("\n") { "• $it" }
+                                            } else {
+                                                sec.title
+                                            }
+                                        }
+                                    } else {
+                                        null
+                                    }
+                                    updateChangelogText = summary
+                                    showStrictUpdateDialog = true
+                                } else {
+                                    showStrictUpdateDialog = false
+                                }
+                            },
+                            onError = { }
+                        )
                     }
 
                     if (showStrictUpdateDialog && currentRoute != "update") {
@@ -1264,17 +1286,57 @@ class MainActivity : ComponentActivity() {
                                 dismissOnClickOutside = false
                             ),
                             title = {
-                                Text(
-                                    text = "Update Required",
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(
+                                        text = "Update Available",
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    if (updateLatestVersion.isNotBlank()) {
+                                        Text(
+                                            text = "Version $updateLatestVersion",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
                             },
                             text = {
-                                Text(
-                                    text = "A new version of Snuggle Musix is available with important fixes and enhancements. Please update now to continue.",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Text(
+                                        text = "A new version of Snuggle Musix is ready with new features and performance enhancements.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    if (!updateChangelogText.isNullOrBlank()) {
+                                        Surface(
+                                            shape = RoundedCornerShape(14.dp),
+                                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                Text(
+                                                    text = "What's New:",
+                                                    fontWeight = FontWeight.Bold,
+                                                    style = MaterialTheme.typography.labelLarge,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                                Text(
+                                                    text = updateChangelogText ?: "",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             },
                             confirmButton = {
                                 androidx.compose.material3.Button(

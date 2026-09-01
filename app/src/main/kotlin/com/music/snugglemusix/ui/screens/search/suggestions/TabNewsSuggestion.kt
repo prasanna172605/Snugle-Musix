@@ -43,8 +43,6 @@ import com.snuggle.music.utils.rememberPreference
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
-import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -470,7 +468,6 @@ fun TrendingVideosSection(
 ) {
     if (videos.isEmpty()) return
     
-    val carouselState = rememberCarouselState(itemCount = { videos.size })
     val context = LocalContext.current
 
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)) {
@@ -497,75 +494,71 @@ fun TrendingVideosSection(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        HorizontalMultiBrowseCarousel(
-            state = carouselState,
-            preferredItemWidth = 320.dp,
-            itemSpacing = 12.dp,
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp)
-        ) { i ->
-            val video = videos[i]
-            var isCardFocused by remember { mutableStateOf(false) }
+                .height(200.dp)
+        ) {
+            items(videos) { video ->
+                var isCardFocused by remember { mutableStateOf(false) }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(16.dp))
-                    .onGloballyPositioned { coordinates ->
-                        val cardCenter = coordinates.boundsInRoot().center.x
-                        val screenWidth = context.resources.displayMetrics.widthPixels
-                        val screenCenter = screenWidth / 2f
-                        isCardFocused = abs(cardCenter - screenCenter) < 150
-                    }
-                    .clickable { onVideoClick(video) }
-            ) {
-                
-                AsyncImage(
-                    model = video.thumbnailUrl,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-
-
-                
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    Color.Black.copy(alpha = 0.7f)
-                                ),
-                                startY = 300f
-                            )
-                        )
-                )
-
-                
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(12.dp)
+                        .width(300.dp)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(16.dp))
+                        .onGloballyPositioned { coordinates ->
+                            val cardCenter = coordinates.boundsInRoot().center.x
+                            val screenWidth = context.resources.displayMetrics.widthPixels.toFloat()
+                            val screenCenter = screenWidth / 2f
+                            isCardFocused = abs(cardCenter - screenCenter) < 150
+                        }
+                        .clickable { onVideoClick(video) }
                 ) {
-                    Text(
-                        text = video.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        fontWeight = FontWeight.Bold
+                    AsyncImage(
+                        model = video.thumbnailUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
                     )
-                    Text(
-                        text = video.artist,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.7f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        Color.Black.copy(alpha = 0.7f)
+                                    ),
+                                    startY = 300f
+                                )
+                            )
                     )
+
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(12.dp)
+                    ) {
+                        Text(
+                            text = video.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = video.artist,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.7f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
         }

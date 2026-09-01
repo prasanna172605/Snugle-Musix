@@ -36,6 +36,8 @@ import com.snuggle.music.db.entities.SpeedDialItem
 import com.snuggle.music.extensions.filterVideoSongs
 import com.snuggle.music.extensions.toEnum
 import com.snuggle.music.models.SimilarRecommendation
+import com.snuggle.music.models.toMediaMetadata
+import com.snuggle.music.db.entities.SongEntity
 import com.snuggle.music.utils.SyncUtils
 import com.snuggle.music.utils.dataStore
 import com.snuggle.music.utils.get
@@ -319,7 +321,17 @@ class HomeViewModel @Inject constructor(
                     .shuffled()
                     .take(20)
 
-                quickPicks.value = combined.ifEmpty { relatedSongs.shuffled().take(20) }
+                if (combined.isNotEmpty()) {
+                    quickPicks.value = combined
+                } else if (relatedSongs.isNotEmpty()) {
+                    quickPicks.value = relatedSongs.shuffled().take(20)
+                } else {
+                    // Fallback to most played or any songs in database so suggestions always show
+                    val allSongs = database.allSongs().first()
+                    if (allSongs.isNotEmpty()) {
+                        quickPicks.value = allSongs.shuffled().take(20)
+                    }
+                }
             }
             QuickPicks.LAST_LISTEN -> {
                 val song = database.events().first().firstOrNull()?.song
@@ -522,7 +534,7 @@ class HomeViewModel @Inject constructor(
             launch(Dispatchers.IO) { getCommunityPlaylists() }
             launch(Dispatchers.IO) { loadSimilarRecommendations() }
             launch(Dispatchers.IO) {
-                // Fetch home page feed
+                // Fetch official home page feed
                 val homeResult = YouTube.home()
                 
                 // Determine user's listening history/taste
@@ -559,6 +571,28 @@ class HomeViewModel @Inject constructor(
                     }
                 } ?: emptyList()
 
+                // If quickPicks is empty, seed it from customTasteSections or trending songs
+                if (quickPicks.value.isNullOrEmpty()) {
+                    val candidateSongs = customTasteSections.flatMap { it.items.filterIsInstance<SongItem>() }
+                    if (candidateSongs.isNotEmpty()) {
+                        quickPicks.value = candidateSongs.map { s ->
+                            val entity = SongEntity(
+                                id = s.id,
+                                title = s.title,
+                                duration = s.duration ?: -1,
+                                thumbnailUrl = s.thumbnail,
+                                explicit = s.explicit,
+                                isVideo = false
+                            )
+                            Song(
+                                song = entity,
+                                artists = s.artists.map { com.snuggle.music.db.entities.ArtistEntity(id = it.id ?: it.name, name = it.name) },
+                                album = null
+                            )
+                        }.take(20)
+                    }
+                }
+
                 homeResult.onSuccess { page ->
                     val filteredSections = page.sections.mapNotNull { section ->
                         val filteredItems = section.items
@@ -567,11 +601,41 @@ class HomeViewModel @Inject constructor(
                             .filterYoutubeShorts(hideYoutubeShorts)
                         if (filteredItems.isEmpty()) null else section.copy(items = filteredItems)
                     }
-                    // Insert taste/starter sections at the top of the home page feed sections
+                    // Insert taste/starter sections along with all official YouTube home page feed sections
                     homePage.value = page.copy(
                         sections = customTasteSections + filteredSections
                     )
-                }.onFailure { reportException(it) }
+
+                    if (quickPicks.value.isNullOrEmpty()) {
+                        val allHomeSongs = (customTasteSections + filteredSections).flatMap { it.items.filterIsInstance<SongItem>() }
+                        if (allHomeSongs.isNotEmpty()) {
+                            quickPicks.value = allHomeSongs.map { s ->
+                                val entity = SongEntity(
+                                    id = s.id,
+                                    title = s.title,
+                                    duration = s.duration ?: -1,
+                                    thumbnailUrl = s.thumbnail,
+                                    explicit = s.explicit,
+                                    isVideo = false
+                                )
+                                Song(
+                                    song = entity,
+                                    artists = s.artists.map { com.snuggle.music.db.entities.ArtistEntity(id = it.id ?: it.name, name = it.name) },
+                                    album = null
+                                )
+                            }.take(20)
+                        }
+                    }
+                }.onFailure {
+                    reportException(it)
+                    if (customTasteSections.isNotEmpty()) {
+                        homePage.value = com.music.innertube.pages.HomePage(
+                            chips = emptyList(),
+                            sections = customTasteSections,
+                            continuation = null
+                        )
+                    }
+                }
             }
             launch(Dispatchers.IO) {
                 YouTube.explore().onSuccess { page ->

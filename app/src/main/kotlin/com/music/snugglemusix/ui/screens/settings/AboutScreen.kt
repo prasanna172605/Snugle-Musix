@@ -199,7 +199,7 @@ private fun AboutAppCard() {
                 com.snuggle.music.constants.EnableLegacyIconKey,
                 defaultValue = true
             )
-            val logoDrawable = if (enableLegacyIcon) R.drawable.ic_legacy_nobg else R.drawable.ic_launcher_foreground
+            val logoDrawable = R.drawable.ic_launcher_foreground
 
             Box(
                 modifier = Modifier

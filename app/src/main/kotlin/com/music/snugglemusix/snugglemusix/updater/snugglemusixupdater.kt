@@ -670,13 +670,16 @@ fun isNewerVersion(latestVersion: String, currentVersion: String): Boolean {
     val latestVersionClean = latestVersion.removePrefix("b").removePrefix("v").trim()
     val currentVersionClean = currentVersion.removePrefix("b").removePrefix("v").trim()
 
+    // If strings match exactly after prefix removal, it is NOT newer
+    if (latestVersionClean == currentVersionClean) {
+        val latestIsBeta = latestVersion.startsWith("b")
+        val currentIsBeta = currentVersion.startsWith("b")
+        if (currentIsBeta && !latestIsBeta) return true
+        return false
+    }
+
     val latestParts = latestVersionClean.split(".").map { it.toIntOrNull() ?: 0 }
     val currentParts = currentVersionClean.split(".").map { it.toIntOrNull() ?: 0 }
-    
-    // Custom check: If current is 6.x.x and latest is 1.x.x (or higher), treat 1.x.x as newer to support resetting versions
-    if (latestParts.getOrNull(0) == 1 && currentParts.getOrNull(0) == 6) {
-        return true
-    }
     
     for (i in 0 until maxOf(latestParts.size, currentParts.size)) {
         val latest = latestParts.getOrElse(i) { 0 }
@@ -685,13 +688,6 @@ fun isNewerVersion(latestVersion: String, currentVersion: String): Boolean {
             latest > current -> return true
             latest < current -> return false
         }
-    }
-    
-    if (latestVersionClean == currentVersionClean) {
-        val latestIsBeta = latestVersion.startsWith("b")
-        val currentIsBeta = currentVersion.startsWith("b")
-        
-        if (currentIsBeta && !latestIsBeta) return true
     }
     
     return false
