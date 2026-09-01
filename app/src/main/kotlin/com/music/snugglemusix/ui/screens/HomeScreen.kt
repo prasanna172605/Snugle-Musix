@@ -1,4 +1,8 @@
 package com.snuggle.music.ui.screens
+import com.snuggle.music.ui.screens.MoodAndGenresButtonHeight
+import com.snuggle.music.ui.screens.MoodAndGenresButton
+import kotlin.math.absoluteValue
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.ui.unit.sp
@@ -1205,113 +1209,134 @@ fun HomeScreen(
 
                                 item(key = "quick_picks_list") {
                                     val distinctQuickPicks = quickPicks.distinctBy { it.id }
-                                    LazyRow(
-                                        contentPadding = PaddingValues(horizontal = 16.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                                    val pagerState = rememberPagerState(pageCount = { distinctQuickPicks.size })
+
+                                    HorizontalPager(
+                                        state = pagerState,
+                                        contentPadding = PaddingValues(horizontal = 60.dp),
+                                        pageSpacing = 16.dp,
                                         modifier = Modifier
                                             .fillMaxWidth()
+                                            .height(300.dp)
                                             .animateItem()
-                                    ) {
-                                        items(distinctQuickPicks, key = { it.id }) { originalSong ->
-                                            val song by database.song(originalSong.id)
-                                                .collectAsState(initial = originalSong)
-                                            val currentSong = song ?: originalSong
-                                            val isActive = currentSong.id == mediaMetadata?.id
+                                    ) { page ->
+                                        val originalSong = distinctQuickPicks[page]
+                                        val song by database.song(originalSong.id)
+                                            .collectAsState(initial = originalSong)
+                                        val currentSong = song ?: originalSong
+                                        val isActive = currentSong.id == mediaMetadata?.id
 
-                                            Card(
-                                                modifier = Modifier
-                                                    .width(180.dp)
-                                                    .height(290.dp)
-                                                    .combinedClickable(
-                                                        onClick = {
-                                                            if (isActive) {
-                                                                playerConnection.togglePlayPause()
-                                                            } else {
-                                                                playerConnection.playQueue(YouTubeQueue.radio(currentSong.toMediaMetadata()))
-                                                            }
-                                                        },
-                                                        onLongClick = {
-                                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                            menuState.show {
-                                                                SongMenu(
-                                                                    originalSong = currentSong,
-                                                                    navController = navController,
-                                                                    onDismiss = menuState::dismiss
-                                                                )
-                                                            }
+                                        // Calculate exact carousel smooth scale & fade animation
+                                        val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).absoluteValue
+                                        val cardScale = androidx.compose.ui.util.lerp(
+                                            start = 0.86f,
+                                            stop = 1.0f,
+                                            fraction = 1f - pageOffset.coerceIn(0f, 1f)
+                                        )
+                                        val cardAlpha = androidx.compose.ui.util.lerp(
+                                            start = 0.75f,
+                                            stop = 1.0f,
+                                            fraction = 1f - pageOffset.coerceIn(0f, 1f)
+                                        )
+
+                                        Card(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .graphicsLayer {
+                                                    scaleX = cardScale
+                                                    scaleY = cardScale
+                                                    alpha = cardAlpha
+                                                }
+                                                .combinedClickable(
+                                                    onClick = {
+                                                        if (isActive) {
+                                                            playerConnection.togglePlayPause()
+                                                        } else {
+                                                            playerConnection.playQueue(YouTubeQueue.radio(currentSong.toMediaMetadata()))
                                                         }
-                                                    ),
-                                                shape = RoundedCornerShape(24.dp),
-                                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                                            ) {
-                                                Box(modifier = Modifier.fillMaxSize()) {
-                                                    AsyncImage(
-                                                        model = coil3.request.ImageRequest.Builder(LocalContext.current)
-                                                            .data(currentSong.thumbnailUrl)
-                                                            .crossfade(true)
-                                                            .build(),
-                                                        contentDescription = null,
-                                                        contentScale = ContentScale.Crop,
-                                                        modifier = Modifier.fillMaxSize()
-                                                    )
+                                                    },
+                                                    onLongClick = {
+                                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                        menuState.show {
+                                                            SongMenu(
+                                                                originalSong = currentSong,
+                                                                navController = navController,
+                                                                onDismiss = menuState::dismiss
+                                                            )
+                                                        }
+                                                    }
+                                                ),
+                                            shape = RoundedCornerShape(26.dp),
+                                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                                        ) {
+                                            Box(modifier = Modifier.fillMaxSize()) {
+                                                AsyncImage(
+                                                    model = coil3.request.ImageRequest.Builder(LocalContext.current)
+                                                        .data(currentSong.thumbnailUrl)
+                                                        .crossfade(true)
+                                                        .build(),
+                                                    contentDescription = null,
+                                                    contentScale = ContentScale.Crop,
+                                                    modifier = Modifier.fillMaxSize()
+                                                )
 
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxSize()
+                                                        .background(
+                                                            Brush.verticalGradient(
+                                                                colors = listOf(
+                                                                    Color.Transparent,
+                                                                    Color.Black.copy(alpha = 0.88f)
+                                                                ),
+                                                                startY = 200f
+                                                            )
+                                                        )
+                                                )
+
+                                                if (isActive && isPlaying) {
                                                     Box(
                                                         modifier = Modifier
-                                                            .fillMaxSize()
-                                                            .background(
-                                                                Brush.verticalGradient(
-                                                                    colors = listOf(
-                                                                        Color.Transparent,
-                                                                        Color.Black.copy(alpha = 0.85f)
-                                                                    ),
-                                                                    startY = 200f
-                                                                )
-                                                            )
-                                                    )
-
-                                                    if (isActive && isPlaying) {
-                                                        Box(
-                                                            modifier = Modifier
-                                                                .align(Alignment.TopEnd)
-                                                                .padding(12.dp)
-                                                                .size(32.dp)
-                                                                .background(
-                                                                    MaterialTheme.colorScheme.primary,
-                                                                    CircleShape
-                                                                ),
-                                                            contentAlignment = Alignment.Center
-                                                        ) {
-                                                            Icon(
-                                                                painter = painterResource(R.drawable.volume_up),
-                                                                contentDescription = null,
-                                                                tint = MaterialTheme.colorScheme.onPrimary,
-                                                                modifier = Modifier.size(18.dp)
-                                                            )
-                                                        }
-                                                    }
-
-                                                    Column(
-                                                        modifier = Modifier
-                                                            .align(Alignment.BottomStart)
+                                                            .align(Alignment.TopEnd)
                                                             .padding(14.dp)
-                                                    ) {
-                                                        Text(
-                                                            text = currentSong.title,
-                                                            style = MaterialTheme.typography.titleMedium.copy(
-                                                                fontWeight = FontWeight.Bold
+                                                            .size(36.dp)
+                                                            .background(
+                                                                MaterialTheme.colorScheme.primary,
+                                                                CircleShape
                                                             ),
-                                                            color = Color.White,
-                                                            maxLines = 2,
-                                                            overflow = TextOverflow.Ellipsis
-                                                        )
-                                                        Text(
-                                                            text = currentSong.artists.joinToString { it.name },
-                                                            style = MaterialTheme.typography.bodySmall,
-                                                            color = Color.White.copy(alpha = 0.75f),
-                                                            maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Icon(
+                                                            painter = painterResource(R.drawable.volume_up),
+                                                            contentDescription = null,
+                                                            tint = MaterialTheme.colorScheme.onPrimary,
+                                                            modifier = Modifier.size(20.dp)
                                                         )
                                                     }
+                                                }
+
+                                                Column(
+                                                    modifier = Modifier
+                                                        .align(Alignment.BottomStart)
+                                                        .padding(18.dp)
+                                                ) {
+                                                    Text(
+                                                        text = currentSong.title,
+                                                        style = MaterialTheme.typography.titleLarge.copy(
+                                                            fontWeight = FontWeight.Bold
+                                                        ),
+                                                        color = Color.White,
+                                                        maxLines = 2,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                    Spacer(modifier = Modifier.height(2.dp))
+                                                    Text(
+                                                        text = currentSong.artists.joinToString { it.name },
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        color = Color.White.copy(alpha = 0.8f),
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
                                                 }
                                             }
                                         }
