@@ -80,6 +80,7 @@ import com.snuggle.music.constants.MiniPlayerHeight
 import com.snuggle.music.constants.NavigationBarHeight
 import com.snuggle.music.constants.PauseSearchHistoryKey
 import com.snuggle.music.db.entities.SearchHistory
+import com.snuggle.music.extensions.toMediaItem
 import com.snuggle.music.models.toMediaMetadata
 import com.snuggle.music.playback.queues.YouTubeQueue
 import com.snuggle.music.ui.component.ChipsRow
@@ -256,12 +257,18 @@ fun OnlineSearchResult(
                                 if (item.id == mediaMetadata?.id) {
                                     playerConnection.togglePlayPause()
                                 } else {
-                                    playerConnection.playQueue(
-                                        YouTubeQueue(
-                                            WatchEndpoint(videoId = item.id),
-                                            item.toMediaMetadata()
+                                    if (com.snuggle.music.providers.JioSaavnProvider.isJioSaavnId(item.id)) {
+                                        playerConnection.playQueue(
+                                            com.snuggle.music.playback.queues.JioSaavnQueue(item)
                                         )
-                                    )
+                                    } else {
+                                        playerConnection.playQueue(
+                                            YouTubeQueue(
+                                                WatchEndpoint(videoId = item.id),
+                                                item.toMediaMetadata()
+                                            )
+                                        )
+                                    }
                                 }
                             }
 
@@ -362,6 +369,7 @@ fun OnlineSearchResult(
             ChipsRow(
                 chips = listOf(
                     null to stringResource(R.string.filter_all),
+                    com.snuggle.music.viewmodels.OnlineSearchViewModel.FILTER_JIOSAAVN to "JioSaavn",
                     FILTER_SONG to stringResource(R.string.filter_songs),
                     FILTER_VIDEO to stringResource(R.string.filter_videos),
                     FILTER_ALBUM to stringResource(R.string.filter_albums),

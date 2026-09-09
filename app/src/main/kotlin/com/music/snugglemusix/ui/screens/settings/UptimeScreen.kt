@@ -59,7 +59,12 @@ highlightKey: String? = null) {
                 { "Server 1" },
                 offlineMessage = "Server hits its daily limit, we'll get you tomorrow!"
             ),
-
+            ServiceStatus(
+                "MP4-LATM",
+                { "https://music.youtube.com" },
+                { "AAC Stream" },
+                offlineMessage = "320 kbps stream endpoint unavailable"
+            )
         )
     }
 

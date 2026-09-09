@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.snuggle.music",
+    "sha256_cert_fingerprints": [
+      "88:BB:B8:E4:6C:EC:8B:58:8E:FE:42:C5:BE:2B:85:DE:49:59:33:43:55:90:26:43:29:ED:75:B1:34:63:42:D0"
+    ]
+  }
+}]

@@ -788,10 +788,12 @@ fun AudioQualitySelector(context: Context) {
 
         val options = listOf(
             "Opus",
-            "320 kbps"
+            "JioSaavn",
+            "MP4-LATM"
         )
         val selectedIndex = when (audioQuality) {
             AudioQuality.SAAVN, AudioQuality.LOSSLESS -> 1
+            AudioQuality.MP4_LATM -> 2
             else -> 0
         }
 
@@ -809,6 +811,7 @@ fun AudioQualitySelector(context: Context) {
                     onCheckedChange = {
                         val newQuality = when (index) {
                             1 -> AudioQuality.SAAVN
+                            2 -> AudioQuality.MP4_LATM
                             else -> AudioQuality.OPUS
                         }
                         onAudioQualityChange(newQuality)

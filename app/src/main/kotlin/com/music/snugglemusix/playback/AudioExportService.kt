@@ -14,6 +14,7 @@ import com.music.innertube.YouTube
 import com.snuggle.music.constants.AudioQuality
 import com.snuggle.music.constants.ExportingSongIdsKey
 import com.snuggle.music.constants.ExportedSongIdsKey
+import com.snuggle.music.constants.ExportProgressKey
 import com.snuggle.music.utils.YTPlayerUtils
 import com.snuggle.music.utils.dataStore
 import androidx.datastore.preferences.core.edit
@@ -95,19 +96,20 @@ class AudioExportService : Service() {
                     error("Stream request failed with ${response.code}")
                 }
                 val body = response.body ?: error("No response body")
-                totalBytes = body.contentLength()
+                totalBytes = body.contentLength().takeIf { it > 0 } ?: (playbackData.format.contentLength ?: 10_000_000L)
                 val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
                 body.byteStream().use { input ->
                     tempSourceFile.outputStream().use { output ->
                         var read: Int
-                        var lastProgress = -1
+                        var lastReportedPercent = -1
                         while (input.read(buffer).also { read = it } != -1) {
                             output.write(buffer, 0, read)
                             bytesWritten += read
                             if (totalBytes > 0) {
-                                val progress = ((bytesWritten * 55L) / totalBytes).toInt().coerceIn(0, 55)
-                                if (progress > lastProgress) {
-                                    lastProgress = progress
+                                val percent = ((bytesWritten * 100) / totalBytes).toInt().coerceIn(0, 99)
+                                if (percent >= lastReportedPercent + 2) {
+                                    lastReportedPercent = percent
+                                    updateExportProgress(songId, percent)
                                 }
                             }
                         }
@@ -164,8 +166,11 @@ class AudioExportService : Service() {
             tempSourceFile.delete()
             tempArtworkFile.delete()
             tempMp3File.delete()
+            clearExportProgress(songId)
             addExportedSongId(songId)
-        }.onFailure { }
+        }.onFailure {
+            clearExportProgress(songId)
+        }
         removeExportingSongId(songId)
         stopSelf()
     }
@@ -206,6 +211,34 @@ class AudioExportService : Service() {
                 .map { it.trim() }
                 .filter { it.isNotBlank() }
             preferences[ExportingSongIdsKey] = current.filterNot { it == songId }.joinToString(",")
+        }
+    }
+
+    private suspend fun updateExportProgress(songId: String, percent: Int) {
+        dataStore.edit { preferences ->
+            val current = preferences[ExportProgressKey].orEmpty()
+                .split(',')
+                .filter { it.isNotBlank() }
+                .associate { 
+                    val parts = it.split(':')
+                    parts[0] to (parts.getOrNull(1)?.toIntOrNull() ?: 0)
+                }.toMutableMap()
+            current[songId] = percent
+            preferences[ExportProgressKey] = current.map { "${it.key}:${it.value}" }.joinToString(",")
+        }
+    }
+
+    private suspend fun clearExportProgress(songId: String) {
+        dataStore.edit { preferences ->
+            val current = preferences[ExportProgressKey].orEmpty()
+                .split(',')
+                .filter { it.isNotBlank() }
+                .associate { 
+                    val parts = it.split(':')
+                    parts[0] to (parts.getOrNull(1)?.toIntOrNull() ?: 0)
+                }.toMutableMap()
+            current.remove(songId)
+            preferences[ExportProgressKey] = current.map { "${it.key}:${it.value}" }.joinToString(",")
         }
     }
 

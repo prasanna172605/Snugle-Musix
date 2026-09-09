@@ -131,6 +131,7 @@ highlightKey: String? = null) {
 
     val (contentLanguage, onContentLanguageChange) = rememberPreference(key = ContentLanguageKey, defaultValue = "system")
     val (contentCountry, onContentCountryChange) = rememberPreference(key = ContentCountryKey, defaultValue = "system")
+    val (regionalPreferenceProfile, onRegionalPreferenceProfileChange) = rememberPreference(key = com.snuggle.music.constants.RegionalPreferenceProfileKey, defaultValue = "")
     val (suggestionRegion, onSuggestionRegionChange) = rememberPreference(key = SuggestionRegionKey, defaultValue = "system")
     val (hideExplicit, onHideExplicitChange) = rememberPreference(key = HideExplicitKey, defaultValue = false)
     val (hideVideoSongs, onHideVideoSongsChange) = rememberPreference(key = HideVideoSongsKey, defaultValue = false)
@@ -333,6 +334,30 @@ highlightKey: String? = null) {
             values = (listOf(SYSTEM_DEFAULT) + CountryCodeToName.keys.toList()),
             valueText = {
                 CountryCodeToName.getOrElse(it) { stringResource(R.string.system_default) }
+            }
+        )
+    }
+
+    var showRegionalPreferenceDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    if (showRegionalPreferenceDialog) {
+        EnumDialog(
+            onDismiss = { showRegionalPreferenceDialog = false },
+            onSelect = {
+                onRegionalPreferenceProfileChange(if (it == SYSTEM_DEFAULT) "" else it)
+                showRegionalPreferenceDialog = false
+            },
+            title = "Regional Music Feed (Initial Prior)",
+            current = if (regionalPreferenceProfile.isBlank()) SYSTEM_DEFAULT else regionalPreferenceProfile,
+            values = listOf(SYSTEM_DEFAULT) + com.snuggle.music.personalization.RegionProfile.entries.map { it.regionCode },
+            valueText = { code ->
+                if (code == SYSTEM_DEFAULT) {
+                    stringResource(R.string.system_default) + " (Auto-Detect Location)"
+                } else {
+                    com.snuggle.music.personalization.RegionProfile.fromCode(code).displayName
+                }
             }
         )
     }
@@ -632,6 +657,21 @@ highlightKey: String? = null) {
                         )
                     },
                     onClick = { showContentCountryDialog = true }
+                ),
+                Material3SettingsItem(
+    isHighlighted = (highlightKey == "Regional Music Feed"),
+                    icon = painterResource(R.drawable.globe_location_pin),
+                    title = { Text("Regional Music Feed (Initial Prior)") },
+                    description = {
+                        Text(
+                            if (regionalPreferenceProfile.isBlank()) {
+                                stringResource(R.string.system_default) + " (Auto-Detect)"
+                            } else {
+                                com.snuggle.music.personalization.RegionProfile.fromCode(regionalPreferenceProfile).displayName
+                            }
+                        )
+                    },
+                    onClick = { showRegionalPreferenceDialog = true }
                 ),
                 Material3SettingsItem(
     isHighlighted = (highlightKey == "Suggestions Region"),

@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.snuggle.music.extensions.filterVideoSongs as filterVideoSongsLocal
@@ -44,9 +45,13 @@ class ArtistViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     database: MusicDatabase,
     savedStateHandle: SavedStateHandle,
+    private val providerRegistry: com.snuggle.music.providers.ProviderRegistry,
 ) : ViewModel() {
     val artistId = savedStateHandle.get<String>("artistId")!!
     var artistPage by mutableStateOf<ArtistPage?>(null)
+
+    private val _jioSaavnArtistCover = MutableStateFlow<String?>(null)
+    val jioSaavnArtistCover: StateFlow<String?> = _jioSaavnArtistCover
     
     private val _artistVideoUrl = MutableStateFlow<String?>(null)
     val artistVideoUrl: StateFlow<String?> = _artistVideoUrl
@@ -103,7 +108,17 @@ class ArtistViewModel @Inject constructor(
                         .filter { section -> section.items.isNotEmpty() }
 
                     artistPage = page.copy(sections = filteredSections)
-                    
+
+                    // Fetch official high-res artist cover from JioSaavn
+                    val artistName = page.artist?.title
+                    if (!artistName.isNullOrBlank()) {
+                        launch(Dispatchers.IO) {
+                            val saavnCover = providerRegistry.jioSaavnProvider.getArtistCover(artistName)
+                            if (saavnCover != null) {
+                                _jioSaavnArtistCover.value = saavnCover
+                            }
+                        }
+                    }
                     
                     val topSongsSection = page.sections.find { it.items.firstOrNull() is com.music.innertube.models.SongItem }
                     topSongsSection?.items?.forEach { item ->

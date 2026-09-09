@@ -413,6 +413,11 @@
     <string name="spotify_connect">Connect Spotify</string>
     <string name="spotify_refresh">Refresh Spotify library</string>
     <string name="spotify_select_sources">Select Spotify playlists</string>
+    <string name="spotify_import_by_link">Import playlist by link</string>
+    <string name="spotify_import_by_link_desc">Paste a Spotify playlist link to import it — even playlists you don\'t own</string>
+    <string name="spotify_import_by_link_hint">https://open.spotify.com/playlist/…</string>
+    <string name="spotify_add">Add</string>
+    <string name="spotify_invalid_playlist_link">That doesn\'t look like a Spotify playlist link. Use a link like https://open.spotify.com/playlist/…</string>
     <string name="spotify_import_selected">Import selected</string>
     <string name="spotify_selected_count">%1$d selected</string>
     <string name="spotify_available_count">%1$d sources available</string>
@@ -433,6 +438,7 @@
     <string name="spotify_clear_selection">Clear</string>
     <string name="spotify_account">Spotify account</string>
     <string name="spotify_waiting_for_login">Waiting for Spotify login</string>
+    <string name="action_logout_desc">Log out of Spotify</string>
     <string name="service_uptime">Service Uptime</string>
     <string name="service_uptime_desc">Check the status of music providers</string>
     <string name="music_providers">Music Providers</string>

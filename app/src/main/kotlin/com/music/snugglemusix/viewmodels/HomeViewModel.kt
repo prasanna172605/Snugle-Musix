@@ -57,8 +57,14 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import javax.inject.Inject
 import kotlin.random.Random
+import com.snuggle.music.personalization.MusicLanguage
+import com.snuggle.music.personalization.MusicLanguageClassifier
+import com.snuggle.music.personalization.RecommendationScorer
+import com.snuggle.music.personalization.RegionalPreferenceManager
+import com.snuggle.music.personalization.TasteProfileEngine
+import com.snuggle.music.personalization.UserExperienceLevel
+import javax.inject.Inject
 
 data class DailyDiscoverItem(
     val seed: Song,
@@ -75,7 +81,11 @@ data class CommunityPlaylistItem(
 class HomeViewModel @Inject constructor(
     @ApplicationContext val context: Context,
     val database: MusicDatabase,
-    val syncUtils: SyncUtils
+    val syncUtils: SyncUtils,
+    val regionalPreferenceManager: RegionalPreferenceManager,
+    val tasteProfileEngine: TasteProfileEngine,
+    val recommendationScorer: RecommendationScorer,
+    val providerRegistry: com.snuggle.music.providers.ProviderRegistry
 ) : ViewModel() {
     val isRefreshing = MutableStateFlow(false)
     val isLoading = MutableStateFlow(false)
@@ -100,18 +110,23 @@ class HomeViewModel @Inject constructor(
     val allLocalItems = MutableStateFlow<List<LocalItem>>(emptyList())
     val allYtItems = MutableStateFlow<List<YTItem>>(emptyList())
 
+    val hasEnoughListeningHistory: StateFlow<Boolean> =
+        database.eventCount()
+            .map { it >= 10 }
+            .stateIn(viewModelScope, SharingStarted.Lazily, false)
+
     val speedDialItems: StateFlow<List<YTItem>> =
         combine(
             database.speedDialDao.getAll(),
             keepListening,
-            quickPicks
-        ) { pinned, keepListening, quick ->
+            hasEnoughListeningHistory
+        ) { pinned, keepListening, hasHistory ->
             val pinnedItems = pinned.map { it.toYTItem() }
             val filled = pinnedItems.toMutableList()
             val targetSize = 27
 
-            if (filled.size < targetSize) {
-                
+            // Only populate speed dial from listening history if user has genuine listening history
+            if (hasHistory && filled.size < targetSize) {
                 keepListening?.let { k ->
                     val needed = targetSize - filled.size
                     val available = k.filter { item ->
@@ -135,25 +150,6 @@ class HomeViewModel @Inject constructor(
                             )
                             else -> null
                         }
-                    }
-                    filled.addAll(available.take(needed))
-                }
-            }
-
-            if (filled.size < targetSize) {
-                
-                quick?.let { q ->
-                    val needed = targetSize - filled.size
-                    val available = q.filter { song ->
-                        filled.none { p -> p.id == song.id }
-                    }.map { song ->
-                        SongItem(
-                            id = song.id,
-                            title = song.title,
-                            artists = song.artists.map { Artist(name = it.name, id = it.id) },
-                            thumbnail = song.thumbnailUrl ?: "",
-                            explicit = false
-                        )
                     }
                     filled.addAll(available.take(needed))
                 }
@@ -343,6 +339,10 @@ class HomeViewModel @Inject constructor(
     }
 
     private suspend fun getCommunityPlaylists() {
+        val region = regionalPreferenceManager.getActiveRegion()
+        val tasteProfile = tasteProfileEngine.computeTasteProfile()
+        val isColdStart = tasteProfile.experienceLevel == com.snuggle.music.personalization.UserExperienceLevel.COLD_START
+
         val fromTimeStamp = System.currentTimeMillis() - 86400000L * 7 * 4
         val artistSeeds = database.mostPlayedArtists(fromTimeStamp, limit = 10).first()
             .filter { it.artist.isYouTubeArtist }
@@ -353,39 +353,56 @@ class HomeViewModel @Inject constructor(
         val candidatePlaylists = java.util.Collections.synchronizedList(mutableListOf<PlaylistItem>())
 
         kotlinx.coroutines.coroutineScope {
-            artistSeeds.map { seed ->
-                launch(Dispatchers.IO) {
-                    YouTube.artist(seed.id).onSuccess { page ->
-                        page.sections.forEach { section ->
-                            section.items.filterIsInstance<PlaylistItem>().forEach { playlist ->
-                                if (playlist.author?.name != "YouTube Music" &&
-                                    playlist.author?.name != "YouTube" &&
-                                    playlist.author?.name != "Playlist" &&
-                                    playlist.author?.name != seed.artist.name &&
-                                    !playlist.id.startsWith("RD") &&
-                                    !playlist.id.startsWith("OLAK")
-                                ) {
-                                    candidatePlaylists.add(playlist)
+            if (artistSeeds.isNotEmpty() || songSeeds.isNotEmpty()) {
+                artistSeeds.map { seed ->
+                    launch(Dispatchers.IO) {
+                        YouTube.artist(seed.id).onSuccess { page ->
+                            page.sections.forEach { section ->
+                                section.items.filterIsInstance<PlaylistItem>().forEach { playlist ->
+                                    if (playlist.author?.name != "YouTube Music" &&
+                                        playlist.author?.name != "YouTube" &&
+                                        playlist.author?.name != "Playlist" &&
+                                        playlist.author?.name != seed.artist.name &&
+                                        !playlist.id.startsWith("RD") &&
+                                        !playlist.id.startsWith("OLAK")
+                                    ) {
+                                        candidatePlaylists.add(playlist)
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            songSeeds.map { seed ->
-                launch(Dispatchers.IO) {
-                    val endpoint = YouTube.next(WatchEndpoint(videoId = seed.id)).getOrNull()?.relatedEndpoint
-                    if (endpoint != null) {
-                        YouTube.related(endpoint).onSuccess { page ->
-                            page.playlists.forEach { playlist ->
-                                if (playlist.author?.name != "YouTube Music" &&
-                                    playlist.author?.name != "YouTube" &&
-                                    playlist.author?.name != "Playlist" &&
-                                    !playlist.id.startsWith("RD") &&
-                                    !playlist.id.startsWith("OLAK")
-                                ) {
-                                    candidatePlaylists.add(playlist)
+                songSeeds.map { seed ->
+                    launch(Dispatchers.IO) {
+                        val endpoint = YouTube.next(WatchEndpoint(videoId = seed.id)).getOrNull()?.relatedEndpoint
+                        if (endpoint != null) {
+                            YouTube.related(endpoint).onSuccess { page ->
+                                page.playlists.forEach { playlist ->
+                                    if (playlist.author?.name != "YouTube Music" &&
+                                        playlist.author?.name != "YouTube" &&
+                                        playlist.author?.name != "Playlist" &&
+                                        !playlist.id.startsWith("RD") &&
+                                        !playlist.id.startsWith("OLAK")
+                                    ) {
+                                        candidatePlaylists.add(playlist)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Cold-start fallback: query regional community playlists
+                region.starterPlaylistQueries.take(3).map { query ->
+                    launch(Dispatchers.IO) {
+                        YouTube.searchSummary(query).onSuccess { searchSummary ->
+                            searchSummary.summaries.forEach { summary ->
+                                summary.items.filterIsInstance<PlaylistItem>().forEach { playlist ->
+                                    if (!playlist.id.startsWith("RD") && !playlist.id.startsWith("OLAK")) {
+                                        candidatePlaylists.add(playlist)
+                                    }
                                 }
                             }
                         }
@@ -394,24 +411,75 @@ class HomeViewModel @Inject constructor(
             }
         }
 
-        val uniqueCandidates = candidatePlaylists.distinctBy { it.id }.shuffled().take(5)
+        val rankedCandidates = recommendationScorer.rankAndDiversify(
+            items = candidatePlaylists.distinctBy { it.id },
+            region = region,
+            tasteProfile = tasteProfile
+        ).take(5)
 
         val playlists = java.util.Collections.synchronizedList(mutableListOf<CommunityPlaylistItem>())
 
         kotlinx.coroutines.coroutineScope {
-            uniqueCandidates.map { playlist ->
+            // Fetch YouTube candidate playlists
+            val ytJobs = rankedCandidates.map { playlist ->
                 launch(Dispatchers.IO) {
                     YouTube.playlist(playlist.id).onSuccess { page ->
                         val songs = page.songs.take(10)
                         if (songs.isNotEmpty()) {
-                            
                             val songCountText = page.playlist.songCountText ?: playlist.songCountText
                             val updatedPlaylist = playlist.copy(songCountText = songCountText)
                             playlists.add(CommunityPlaylistItem(updatedPlaylist, songs))
                         }
                     }
                 }
-            }.forEach { it.join() }
+            }
+
+            // Fetch JioSaavn charts & playlists aligned with region prior (cold-start) or evolving taste
+            val targetLanguages = if (isColdStart) {
+                region.primaryLanguages.entries
+                    .sortedByDescending { it.value }
+                    .filter { it.key != MusicLanguage.GLOBAL }
+                    .map { it.key.name.lowercase() }
+            } else {
+                val dominantLangs = tasteProfile.languageAffinities.entries
+                    .sortedByDescending { it.value }
+                    .filter { it.key != MusicLanguage.GLOBAL }
+                    .take(3)
+                    .map { it.key.name.lowercase() }
+                if (dominantLangs.isNotEmpty()) dominantLangs else {
+                    region.primaryLanguages.entries
+                        .sortedByDescending { it.value }
+                        .filter { it.key != MusicLanguage.GLOBAL }
+                        .map { it.key.name.lowercase() }
+                }
+            }
+
+            val saavnJob = launch(Dispatchers.IO) {
+                try {
+                    providerRegistry.jioSaavnProvider.getCharts(targetLanguages).onSuccess { charts ->
+                        val rankedCharts = recommendationScorer.rankAndDiversify(
+                            items = charts,
+                            region = region,
+                            tasteProfile = tasteProfile
+                        ).take(3)
+
+                        rankedCharts.forEach { chart ->
+                            providerRegistry.jioSaavnProvider.getPlaylist(chart.id).onSuccess { (saavnPlaylist, saavnSongs) ->
+                                if (saavnSongs.isNotEmpty()) {
+                                    val rankedSongs = recommendationScorer.rankAndDiversify(
+                                        items = saavnSongs,
+                                        region = region,
+                                        tasteProfile = tasteProfile
+                                    ).take(10)
+                                    playlists.add(CommunityPlaylistItem(saavnPlaylist, rankedSongs))
+                                }
+                            }
+                        }
+                    }
+                } catch (_: Throwable) {}
+            }
+
+            (ytJobs + saavnJob).forEach { it.join() }
         }
 
         communityPlaylists.value = playlists.shuffled()
@@ -448,29 +516,27 @@ class HomeViewModel @Inject constructor(
         coroutineScope {
             val artistDeferreds = database.mostPlayedArtists(fromTimeStamp, limit = 15).first()
                 .filter { it.artist.isYouTubeArtist }
-                .shuffled().take(4)
+                .shuffled()
+                .take(3)
                 .map { artist ->
                     async(Dispatchers.IO) {
-                        val items = mutableListOf<YTItem>()
-                        YouTube.artist(artist.id).onSuccess { page ->
-                            page.sections.takeLast(3).forEach { section -> items += section.items }
-                        }
+                        val page = YouTube.artist(artist.id).getOrNull() ?: return@async null
                         SimilarRecommendation(
                             title = artist,
-                            items = items
-                                .distinctBy { item -> item.id }
+                            items = page.sections
+                                .flatMap { it.items }
                                 .filterExplicit(hideExplicit)
                                 .filterVideoSongs(hideVideoSongs)
                                 .shuffled()
-                                .take(12)
+                                .take(10)
                                 .ifEmpty { return@async null }
                         )
                     }
                 }
 
             val songDeferreds = database.mostPlayedSongs(fromTimeStamp, limit = 15).first()
-                .filter { it.album != null }
-                .shuffled().take(3)
+                .shuffled()
+                .take(3)
                 .map { song ->
                     async(Dispatchers.IO) {
                         val endpoint = YouTube.next(WatchEndpoint(videoId = song.id)).getOrNull()?.relatedEndpoint
@@ -478,22 +544,20 @@ class HomeViewModel @Inject constructor(
                         val page = YouTube.related(endpoint).getOrNull() ?: return@async null
                         SimilarRecommendation(
                             title = song,
-                            items = (page.songs.shuffled().take(10) +
-                                    page.albums.shuffled().take(5) +
-                                    page.artists.shuffled().take(3) +
-                                    page.playlists.shuffled().take(3))
-                                .distinctBy { it.id }
+                            items = page.songs
                                 .filterExplicit(hideExplicit)
                                 .filterVideoSongs(hideVideoSongs)
                                 .shuffled()
+                                .take(10)
                                 .ifEmpty { return@async null }
                         )
                     }
                 }
 
-            val albumDeferreds = database.mostPlayedAlbums(fromTimeStamp, limit = 10).first()
+            val albumDeferreds = database.mostPlayedAlbums(fromTimeStamp, limit = 15).first()
                 .filter { it.album.thumbnailUrl != null }
-                .shuffled().take(2)
+                .shuffled()
+                .take(3)
                 .map { album ->
                     async(Dispatchers.IO) {
                         val items = mutableListOf<YTItem>()
@@ -529,6 +593,9 @@ class HomeViewModel @Inject constructor(
         val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
         val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)
 
+        val activeRegion = regionalPreferenceManager.getActiveRegion()
+        val tasteProfile = tasteProfileEngine.computeTasteProfile()
+
         coroutineScope {
             launch(Dispatchers.IO) { getDailyDiscover() }
             launch(Dispatchers.IO) { getCommunityPlaylists() }
@@ -536,42 +603,59 @@ class HomeViewModel @Inject constructor(
             launch(Dispatchers.IO) {
                 // Fetch official home page feed
                 val homeResult = YouTube.home()
-                
-                // Determine user's listening history/taste
-                val events = database.events().first()
+
+                // Determine dynamic starter query using two-stage personalization
                 val topArtists = database.mostPlayedArtists(10).first()
-                
-                val starterQuery = if (events.isEmpty() && topArtists.isEmpty()) {
-                    "Tamil Hits"
+                val isColdStart = tasteProfile.experienceLevel == UserExperienceLevel.COLD_START
+
+                val starterQuery = if (isColdStart) {
+                    activeRegion.trendingStarterQuery
                 } else {
-                    // Adapt to user's favorite artists/tastes (Hindi, English, Tamil, etc.)
                     val primaryArtist = topArtists.firstOrNull()?.title
                     if (!primaryArtist.isNullOrBlank()) {
                         "$primaryArtist Hits"
                     } else {
-                        null
+                        // Blend dominant taste language with trending query
+                        val dominantLang = tasteProfile.languageAffinities.maxByOrNull { it.value }?.key
+                        if (dominantLang != null && dominantLang != MusicLanguage.GLOBAL) {
+                            "${dominantLang.displayName} Hits"
+                        } else {
+                            activeRegion.trendingStarterQuery
+                        }
                     }
                 }
 
-                val customTasteSections = starterQuery?.let { query ->
+                val customTasteSections = starterQuery.let { query ->
                     val searchRes = YouTube.searchSummary(query).getOrNull()
                     searchRes?.summaries?.mapNotNull { summary ->
                         if (summary.items.isEmpty()) null else {
-                            com.music.innertube.pages.HomePage.Section(
-                                title = if (events.isEmpty()) "Tamil " + summary.title else "${summary.title} For You",
-                                label = if (events.isEmpty()) "Trending" else "Recommended",
-                                thumbnail = null,
-                                endpoint = null,
+                            val rankedItems = recommendationScorer.rankAndDiversify(
                                 items = summary.items
                                     .filterExplicit(hideExplicit)
                                     .filterVideoSongs(hideVideoSongs)
-                                    .filterYoutubeShorts(hideYoutubeShorts)
+                                    .filterYoutubeShorts(hideYoutubeShorts),
+                                region = activeRegion,
+                                tasteProfile = tasteProfile
                             )
+                            if (rankedItems.isEmpty()) null else {
+                                val sectionTitle = if (isColdStart) {
+                                    "${summary.title} in ${activeRegion.languageDisplayName}"
+                                } else {
+                                    "${summary.title} For You"
+                                }
+                                com.music.innertube.pages.HomePage.Section(
+                                    title = sectionTitle,
+                                    label = if (isColdStart) "Regional Trending" else "Personalized",
+                                    thumbnail = null,
+                                    endpoint = null,
+                                    items = rankedItems
+                                )
+                            }
                         }
                     }
                 } ?: emptyList()
 
-                // If quickPicks is empty, seed it from customTasteSections or trending songs
+                // If quickPicks is empty, seed it from ranked candidates
                 if (quickPicks.value.isNullOrEmpty()) {
                     val candidateSongs = customTasteSections.flatMap { it.items.filterIsInstance<SongItem>() }
                     if (candidateSongs.isNotEmpty()) {
@@ -599,7 +683,14 @@ class HomeViewModel @Inject constructor(
                             .filterExplicit(hideExplicit)
                             .filterVideoSongs(hideVideoSongs)
                             .filterYoutubeShorts(hideYoutubeShorts)
-                        if (filteredItems.isEmpty()) null else section.copy(items = filteredItems)
+                        if (filteredItems.isEmpty()) null else {
+                            val rankedItems = recommendationScorer.rankAndDiversify(
+                                items = filteredItems,
+                                region = activeRegion,
+                                tasteProfile = tasteProfile
+                            )
+                            section.copy(items = rankedItems)
+                        }
                     }
                     // Insert taste/starter sections along with all official YouTube home page feed sections
                     homePage.value = page.copy(
@@ -639,8 +730,14 @@ class HomeViewModel @Inject constructor(
             }
             launch(Dispatchers.IO) {
                 YouTube.explore().onSuccess { page ->
+                    val filteredNewReleases = page.newReleaseAlbums.filterExplicit(hideExplicit)
+                    val rankedNewReleases = recommendationScorer.rankAndDiversify(
+                        items = filteredNewReleases,
+                        region = activeRegion,
+                        tasteProfile = tasteProfile
+                    )
                     explorePage.value = page.copy(
-                        newReleaseAlbums = page.newReleaseAlbums.filterExplicit(hideExplicit)
+                        newReleaseAlbums = rankedNewReleases
                     )
                 }.onFailure { reportException(it) }
             }

@@ -569,7 +569,7 @@ object YTPlayerUtils {
 
         if (audioFormats.isEmpty()) return null
 
-        val is320KbpsRequested = audioQuality == AudioQuality.SAAVN || audioQuality == AudioQuality.LOSSLESS
+        val is320KbpsRequested = audioQuality == AudioQuality.SAAVN || audioQuality == AudioQuality.LOSSLESS || audioQuality == AudioQuality.MP4_LATM
 
         return if (is320KbpsRequested) {
             // Strictly prioritize mp4-latm / mp4a (320kbps / highest bitrate)

@@ -33,8 +33,8 @@ android {
         applicationId = "com.snuggle.music"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2001
-        versionName = "v1.0.1"
+        versionCode = 2002
+        versionName = "1.0.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -304,6 +304,7 @@ dependencies {
     implementation(project(":paxsenixlyrics"))
     implementation(project(":unison"))
     implementation(project(":snugglemusiccanvas"))
+    implementation(project(":jiosaavn"))
 
 
     implementation(libs.ktor.client.core)

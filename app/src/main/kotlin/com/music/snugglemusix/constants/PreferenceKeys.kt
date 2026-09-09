@@ -75,6 +75,7 @@ val AppLanguageKey = stringPreferencesKey("appLanguage")
 val CustomUsernameKey = stringPreferencesKey("customUsername")
 val ContentLanguageKey = stringPreferencesKey("contentLanguage")
 val ContentCountryKey = stringPreferencesKey("contentCountry")
+val RegionalPreferenceProfileKey = stringPreferencesKey("regionalPreferenceProfile")
 val SuggestionRegionKey = stringPreferencesKey("suggestionRegion")
 val EnableKugouKey = booleanPreferencesKey("enableKugou")
 val EnableLrcLibKey = booleanPreferencesKey("enableLrclib")
@@ -106,6 +107,7 @@ const val LOSSLESS_ENABLED = true
 
 enum class AudioQuality {
     OPUS,
+    MP4_LATM,
     SAAVN,
     LOSSLESS,
 }
@@ -153,7 +155,10 @@ val MaxSongCacheSizeKey = intPreferencesKey("maxSongCacheSize")
 val ExportDirectoryUriKey = stringPreferencesKey("exportDirectoryUri")
 val ExportingSongIdsKey = stringPreferencesKey("exportingSongIds")
 val ExportedSongIdsKey = stringPreferencesKey("exportedSongIds")
+// Comma-separated "songId:percent" pairs, e.g. "abc:42,def:87"
+val ExportProgressKey = stringPreferencesKey("exportProgress")
 val EnableExportAsMp3Key = booleanPreferencesKey("enableExportAsMp3")
+val ShowLyricsOnPlayerKey = booleanPreferencesKey("showLyricsOnPlayer")
 
 val PauseListenHistoryKey = booleanPreferencesKey("pauseListenHistory")
 val PauseSearchHistoryKey = booleanPreferencesKey("pauseSearchHistory")

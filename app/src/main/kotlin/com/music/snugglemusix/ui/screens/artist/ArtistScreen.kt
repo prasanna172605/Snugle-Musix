@@ -171,6 +171,7 @@ fun ArtistScreen(
     val libraryAlbums by viewModel.libraryAlbums.collectAsState()
     val artistVideoUrl by viewModel.artistVideoUrl.collectAsState()
     val artistVideoSong by viewModel.artistVideoSong.collectAsState()
+    val jioSaavnArtistCover by viewModel.jioSaavnArtistCover.collectAsState()
     val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
     val showArtistDescription by rememberPreference(key = ShowArtistDescriptionKey, defaultValue = true)
     val showArtistSubscriberCount by rememberPreference(key = ShowArtistSubscriberCountKey, defaultValue = true)
@@ -293,7 +294,7 @@ fun ArtistScreen(
                 }
             } else {
                 item(key = "header") {
-                    val thumbnail = artistPage?.artist?.thumbnail ?: libraryArtist?.artist?.thumbnailUrl
+                    val thumbnail = jioSaavnArtistCover ?: artistPage?.artist?.thumbnail ?: libraryArtist?.artist?.thumbnailUrl
                     val artistName = artistPage?.artist?.title ?: libraryArtist?.artist?.name
 
                     var backgroundVideoUrl by remember { mutableStateOf<String?>(null) }

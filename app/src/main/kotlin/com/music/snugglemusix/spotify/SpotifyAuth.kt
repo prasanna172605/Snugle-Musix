@@ -98,31 +98,27 @@ object SpotifyAuth {
         token
     }
 
+    private const val FALLBACK_NUANCE_S = "GM3TMMJTGYZTQNZVGM4DINJZHA4TGOBYGMZTCMRTGEYDSMJRHE4TEOBUG4YTCMRUGQ4DQOJUGQYTAMRRGA2TCMJSHE3TCMBY"
+    private const val FALLBACK_NUANCE_V = 61
+
     private suspend fun fetchNuance(): Nuance = withContext(Dispatchers.IO) {
-        val body = try {
-            httpGet(NUANCE_GIST_URL, emptyMap())
+        try {
+            val body = httpGet(NUANCE_GIST_URL, emptyMap())
+            val nuances = json.decodeFromString<List<Nuance>>(body)
+            nuances.maxByOrNull { it.v } ?: Nuance(FALLBACK_NUANCE_S, FALLBACK_NUANCE_V)
         } catch (e: Exception) {
-            throw Spotify.SpotifyException(
-                503,
-                "Failed to fetch TOTP secret from gist: ${e.message}",
-            )
+            Nuance(FALLBACK_NUANCE_S, FALLBACK_NUANCE_V)
         }
-        val nuances = json.decodeFromString<List<Nuance>>(body)
-        nuances.maxByOrNull { it.v }
-            ?: throw Spotify.SpotifyException(500, "No nuance data found in gist")
     }
 
     private suspend fun fetchServerTime(): Long = withContext(Dispatchers.IO) {
-        val body = try {
-            httpGet(SERVER_TIME_URL, emptyMap())
+        try {
+            val body = httpGet(SERVER_TIME_URL, emptyMap())
+            val response = json.decodeFromString<ServerTimeResponse>(body)
+            response.serverTime
         } catch (e: Exception) {
-            throw Spotify.SpotifyException(
-                503,
-                "Failed to fetch Spotify server time: ${e.message}",
-            )
+            System.currentTimeMillis() / 1000L
         }
-        val response = json.decodeFromString<ServerTimeResponse>(body)
-        response.serverTime
     }
 
     /**

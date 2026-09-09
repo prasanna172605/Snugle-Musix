@@ -15,6 +15,9 @@ import com.snuggle.music.constants.HideExplicitKey
 import com.snuggle.music.constants.HideVideoSongsKey
 import com.snuggle.music.db.MusicDatabase
 import com.snuggle.music.db.entities.SearchHistory
+import com.snuggle.music.personalization.RecommendationScorer
+import com.snuggle.music.personalization.RegionalPreferenceManager
+import com.snuggle.music.personalization.TasteProfileEngine
 import com.snuggle.music.utils.dataStore
 import com.snuggle.music.utils.get
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,6 +37,10 @@ class OnlineSearchSuggestionViewModel
 constructor(
     @ApplicationContext val context: Context,
     database: MusicDatabase,
+    regionalPreferenceManager: RegionalPreferenceManager,
+    tasteProfileEngine: TasteProfileEngine,
+    recommendationScorer: RecommendationScorer,
+    val providerRegistry: com.snuggle.music.providers.ProviderRegistry
 ) : ViewModel() {
     val query = MutableStateFlow("")
     private val _viewState = MutableStateFlow(SearchSuggestionViewState())
@@ -44,9 +51,36 @@ constructor(
             query
                 .flatMapLatest { query ->
                     if (query.isEmpty()) {
+                        val trending = try {
+                            val region = regionalPreferenceManager.getActiveRegion()
+                            val tasteProfile = tasteProfileEngine.computeTasteProfile()
+                            val isColdStart = tasteProfile.experienceLevel == com.snuggle.music.personalization.UserExperienceLevel.COLD_START
+                            val targetLanguages = if (isColdStart) {
+                                region.primaryLanguages.entries
+                                    .sortedByDescending { it.value }
+                                    .filter { it.key != com.snuggle.music.personalization.MusicLanguage.GLOBAL }
+                                    .map { it.key.name.lowercase() }
+                            } else {
+                                val dominantLangs = tasteProfile.languageAffinities.entries
+                                    .sortedByDescending { it.value }
+                                    .filter { it.key != com.snuggle.music.personalization.MusicLanguage.GLOBAL }
+                                    .take(3)
+                                    .map { it.key.name.lowercase() }
+                                if (dominantLangs.isNotEmpty()) dominantLangs else {
+                                    region.primaryLanguages.entries
+                                        .sortedByDescending { it.value }
+                                        .filter { it.key != com.snuggle.music.personalization.MusicLanguage.GLOBAL }
+                                        .map { it.key.name.lowercase() }
+                                }
+                            }
+                            providerRegistry.jioSaavnProvider.getTrendingQueries(targetLanguages).getOrDefault(emptyList())
+                        } catch (_: Throwable) {
+                            emptyList()
+                        }
                         database.searchHistory().map { history ->
                             SearchSuggestionViewState(
                                 history = history,
+                                suggestions = trending.take(8)
                             )
                         }
                     } else {
@@ -56,6 +90,23 @@ constructor(
                         val result = if (parsedUrl != null) null else YouTube.searchSuggestions(query).getOrNull()
                         val hideExplicit = context.dataStore.get(HideExplicitKey, false)
                         val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
+
+                        val region = regionalPreferenceManager.getActiveRegion()
+                        val tasteProfile = tasteProfileEngine.computeTasteProfile()
+
+                        val rawItems = result
+                            ?.recommendedItems
+                            ?.distinctBy { it.id }
+                            ?.filter { it.id != parsedItem?.id }
+                            ?.filterExplicit(hideExplicit)
+                            ?.filterVideoSongs(hideVideoSongs)
+                            .orEmpty()
+
+                        val rankedItems = recommendationScorer.rankAndDiversify(
+                            items = rawItems,
+                            region = region,
+                            tasteProfile = tasteProfile
+                        )
 
                         database
                             .searchHistory(query)
@@ -69,14 +120,7 @@ constructor(
                                         ?.filter { suggestionQuery ->
                                             history.none { it.query == suggestionQuery }
                                         }.orEmpty(),
-                                    items = listOfNotNull(parsedItem) +
-                                    result
-                                        ?.recommendedItems
-                                        ?.distinctBy { it.id }
-                                        ?.filter { it.id != parsedItem?.id }
-                                        ?.filterExplicit(hideExplicit)
-                                        ?.filterVideoSongs(hideVideoSongs)
-                                        .orEmpty(),
+                                    items = listOfNotNull(parsedItem) + rankedItems,
                                     isFromLink = parsedUrl != null
                                 )
                             }

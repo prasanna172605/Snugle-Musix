@@ -248,11 +248,13 @@ highlightKey: String? = null) {
             },
             title = stringResource(R.string.audio_quality),
             current = if (audioQuality == AudioQuality.LOSSLESS) AudioQuality.SAAVN else audioQuality,
-            values = listOf(AudioQuality.OPUS, AudioQuality.SAAVN),
+            values = listOf(AudioQuality.OPUS, AudioQuality.SAAVN, AudioQuality.MP4_LATM),
             valueText = {
                 when (it) {
-                    AudioQuality.OPUS -> "Opus"
-                    else -> "320 kbps (mp4a-LATM)"
+                    AudioQuality.OPUS -> "Opus (YouTube Music)"
+                    AudioQuality.SAAVN -> "JioSaavn (320 kbps)"
+                    AudioQuality.MP4_LATM -> "MP4-LATM (AAC 320 kbps)"
+                    else -> "Opus"
                 }
             }
         )
@@ -332,8 +334,10 @@ highlightKey: String? = null) {
                     description = {
                         Text(
                             when (audioQuality) {
-                                AudioQuality.OPUS -> "Opus"
-                                else -> "320 kbps (mp4a-LATM)"
+                                AudioQuality.OPUS -> "Opus (YouTube Music)"
+                                AudioQuality.SAAVN -> "JioSaavn (320 kbps)"
+                                AudioQuality.MP4_LATM -> "MP4-LATM (AAC 320 kbps)"
+                                else -> "Opus"
                             }
                         )
                     },

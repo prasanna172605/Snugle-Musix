@@ -32,5 +32,6 @@ include(
     ":snugglecanvas",
     ":applecanvas",
     ":unison",
-    ":snugglemusiccanvas"
+    ":snugglemusiccanvas",
+    ":jiosaavn"
 )

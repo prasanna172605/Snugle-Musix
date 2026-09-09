@@ -373,6 +373,17 @@ class MainActivity : ComponentActivity() {
                 }
         }
 
+        if (java.io.File(filesDir, "clear_export_state").exists()) {
+            lifecycleScope.launch {
+                dataStore.edit { preferences ->
+                    preferences.remove(com.snuggle.music.constants.ExportingSongIdsKey)
+                    preferences.remove(com.snuggle.music.constants.ExportedSongIdsKey)
+                    preferences.remove(com.snuggle.music.constants.ExportProgressKey)
+                }
+                java.io.File(filesDir, "clear_export_state").delete()
+            }
+        }
+
         lifecycleScope.launch {
             dataStore.data
                 .distinctUntilChanged()
@@ -1369,6 +1380,9 @@ class MainActivity : ComponentActivity() {
         if (!listenCode.isNullOrBlank() && isListenLink) {
             val username = dataStore.get(ListenTogetherUsernameKey, "").ifBlank { "Guest" }
             listenTogetherManager.joinRoom(listenCode, username)
+            navController.navigate(Screens.ListenTogether.route) {
+                launchSingleTop = true
+            }
             return
         }
 

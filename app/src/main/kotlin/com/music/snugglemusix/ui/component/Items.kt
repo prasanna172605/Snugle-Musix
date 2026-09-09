@@ -118,6 +118,8 @@ import com.snuggle.music.utils.makeTimeString
 import com.snuggle.music.utils.rememberEnumPreference
 import com.snuggle.music.utils.rememberPreference
 import com.snuggle.music.utils.reportException
+import com.snuggle.music.providers.JioSaavnProvider
+import com.snuggle.music.providers.ProviderRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -127,6 +129,21 @@ import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
 const val ActiveBoxAlpha = 0.6f
+
+/**
+ * Simple in-memory cache for JioSaavn artist cover URLs to avoid repeated network
+ * lookups when the same artist appears in multiple list/grid cells while scrolling.
+ * Uses a sentinel FETCHED_NO_COVER value to distinguish "not cached" from "fetched, no cover".
+ */
+internal object JioSaavnArtistCoverCache {
+    private const val FETCHED_NO_COVER = "\u0000"
+    private val cache = java.util.concurrent.ConcurrentHashMap<String, String>()
+    /** Returns null if not cached, empty string if cached-but-no-cover, or the URL. */
+    fun get(artistName: String): String? = cache[artistName]?.let { if (it == FETCHED_NO_COVER) "" else it }
+    fun isCached(artistName: String): Boolean = cache.containsKey(artistName)
+    fun put(artistName: String, url: String?) { cache[artistName] = url ?: FETCHED_NO_COVER }
+}
+
 
 @Composable
 fun currentGridThumbnailHeight(): Dp {
@@ -583,9 +600,22 @@ fun ArtistListItem(
     subtitle = pluralStringResource(R.plurals.n_song, artist.songCount, artist.songCount),
     badges = badges,
     thumbnailContent = {
+        val resolvedThumbnail by produceState(initialValue = artist.artist.thumbnailUrl, artist.id) {
+            val name = artist.artist.name
+            if (JioSaavnArtistCoverCache.isCached(name)) {
+                val cached = JioSaavnArtistCoverCache.get(name)
+                value = if (!cached.isNullOrEmpty()) cached else artist.artist.thumbnailUrl
+            } else {
+                val cover = withContext(Dispatchers.IO) {
+                    ProviderRegistry.activeInstance?.jioSaavnProvider?.getArtistCover(name)
+                }
+                JioSaavnArtistCoverCache.put(name, cover)
+                value = if (!cover.isNullOrEmpty()) cover else artist.artist.thumbnailUrl
+            }
+        }
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
-                .data(artist.artist.thumbnailUrl?.resize(544, 544))
+                .data(resolvedThumbnail?.resize(544, 544))
                 .memoryCachePolicy(coil3.request.CachePolicy.ENABLED)
                 .diskCachePolicy(coil3.request.CachePolicy.ENABLED)
                 .networkCachePolicy(coil3.request.CachePolicy.ENABLED)
@@ -617,9 +647,22 @@ fun ArtistGridItem(
     subtitle = pluralStringResource(R.plurals.n_song, artist.songCount, artist.songCount),
     badges = badges,
     thumbnailContent = {
+        val resolvedThumbnail by produceState(initialValue = artist.artist.thumbnailUrl, artist.id) {
+            val name = artist.artist.name
+            if (JioSaavnArtistCoverCache.isCached(name)) {
+                val cached = JioSaavnArtistCoverCache.get(name)
+                value = if (!cached.isNullOrEmpty()) cached else artist.artist.thumbnailUrl
+            } else {
+                val cover = withContext(Dispatchers.IO) {
+                    ProviderRegistry.activeInstance?.jioSaavnProvider?.getArtistCover(name)
+                }
+                JioSaavnArtistCoverCache.put(name, cover)
+                value = if (!cover.isNullOrEmpty()) cover else artist.artist.thumbnailUrl
+            }
+        }
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
-                .data(artist.artist.thumbnailUrl?.resize(544, 544))
+                .data(resolvedThumbnail?.resize(544, 544))
                 .memoryCachePolicy(coil3.request.CachePolicy.ENABLED)
                 .diskCachePolicy(coil3.request.CachePolicy.ENABLED)
                 .networkCachePolicy(coil3.request.CachePolicy.ENABLED)
@@ -1104,8 +1147,23 @@ fun YouTubeListItem(
             },
             badges = badges,
             thumbnailContent = {
+                // Resolve JioSaavn high-quality artist cover for all artist items
+                val resolvedThumbnail by produceState(initialValue = item.thumbnail, item.id) {
+                    if (item is ArtistItem) {
+                        if (JioSaavnArtistCoverCache.isCached(item.title)) {
+                            val cached = JioSaavnArtistCoverCache.get(item.title)
+                            value = if (!cached.isNullOrEmpty()) cached else item.thumbnail
+                        } else {
+                            val cover = withContext(Dispatchers.IO) {
+                                ProviderRegistry.activeInstance?.jioSaavnProvider?.getArtistCover(item.title)
+                            }
+                            JioSaavnArtistCoverCache.put(item.title, cover)
+                            value = if (!cover.isNullOrEmpty()) cover else item.thumbnail
+                        }
+                    }
+                }
                 ItemThumbnail(
-                    thumbnailUrl = item.thumbnail,
+                    thumbnailUrl = resolvedThumbnail,
                     albumIndex = albumIndex,
                     isSelected = isSelected,
                     isActive = isActive,
@@ -1161,7 +1219,7 @@ fun YouTubeGridItem(
             Icon.Download(download?.state)
         }
     },
-    thumbnailRatio: Float = if (item is SongItem) 16f / 9 else 1f,
+    thumbnailRatio: Float = 1f,
     isActive: Boolean = false,
     isPlaying: Boolean = false,
     fillMaxWidth: Boolean = false,
@@ -1200,8 +1258,23 @@ fun YouTubeGridItem(
         val playerConnection = LocalPlayerConnection.current ?: return@GridItem
         val scope = rememberCoroutineScope()
 
+        // Resolve JioSaavn high-quality artist cover for all artist items
+        val resolvedThumbnailGrid by produceState(initialValue = item.thumbnail, item.id) {
+            if (item is ArtistItem) {
+                if (JioSaavnArtistCoverCache.isCached(item.title)) {
+                    val cached = JioSaavnArtistCoverCache.get(item.title)
+                    value = if (!cached.isNullOrEmpty()) cached else item.thumbnail
+                } else {
+                    val cover = withContext(Dispatchers.IO) {
+                        ProviderRegistry.activeInstance?.jioSaavnProvider?.getArtistCover(item.title)
+                    }
+                    JioSaavnArtistCoverCache.put(item.title, cover)
+                    value = if (!cover.isNullOrEmpty()) cover else item.thumbnail
+                }
+            }
+        }
         ItemThumbnail(
-            thumbnailUrl = item.thumbnail,
+            thumbnailUrl = resolvedThumbnailGrid,
             isActive = isActive,
             isPlaying = isPlaying,
             shape = if (item is ArtistItem) CircleShape else RoundedCornerShape(ThumbnailCornerRadius),
@@ -1277,24 +1350,49 @@ fun LocalArtistsGrid(
     isPlaying: Boolean = false,
     fillMaxWidth: Boolean = false,
     modifier: Modifier = Modifier
-) = GridItem(
-    title = title,
-    subtitle = subtitle,
-    badges = badges,
-    thumbnailContent = {
-        LocalThumbnail(
-            thumbnailUrl = thumbnailUrl,
-            isActive = false,
-            isPlaying = false,
-            shape = CircleShape,
-            modifier = if (fillMaxWidth) Modifier.fillMaxWidth() else Modifier,
-            showCenterPlay = false,
-            playButtonVisible = false
-        )
-    },
-    fillMaxWidth = fillMaxWidth,
-    modifier = modifier
-)
+) {
+    // Strip possible ranking index prefix e.g. "1. " from title to obtain raw artist name
+    val artistName = remember(title) {
+        val dotIndex = title.indexOf(". ")
+        if (dotIndex != -1 && title.substring(0, dotIndex).all { it.isDigit() }) {
+            title.substring(dotIndex + 2).trim()
+        } else {
+            title.trim()
+        }
+    }
+
+    val resolvedThumbnail by produceState(initialValue = thumbnailUrl, artistName) {
+        if (JioSaavnArtistCoverCache.isCached(artistName)) {
+            val cached = JioSaavnArtistCoverCache.get(artistName)
+            value = if (!cached.isNullOrEmpty()) cached else thumbnailUrl
+        } else {
+            val cover = withContext(Dispatchers.IO) {
+                ProviderRegistry.activeInstance?.jioSaavnProvider?.getArtistCover(artistName)
+            }
+            JioSaavnArtistCoverCache.put(artistName, cover)
+            value = if (!cover.isNullOrEmpty()) cover else thumbnailUrl
+        }
+    }
+
+    GridItem(
+        title = title,
+        subtitle = subtitle,
+        badges = badges,
+        thumbnailContent = {
+            LocalThumbnail(
+                thumbnailUrl = resolvedThumbnail,
+                isActive = false,
+                isPlaying = false,
+                shape = CircleShape,
+                modifier = if (fillMaxWidth) Modifier.fillMaxWidth() else Modifier,
+                showCenterPlay = false,
+                playButtonVisible = false
+            )
+        },
+        fillMaxWidth = fillMaxWidth,
+        modifier = modifier
+    )
+}
 
 @Composable
 fun LocalAlbumsGrid(

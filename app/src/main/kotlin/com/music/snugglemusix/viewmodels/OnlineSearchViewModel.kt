@@ -35,6 +35,7 @@ class OnlineSearchViewModel
 constructor(
     @ApplicationContext val context: Context,
     savedStateHandle: SavedStateHandle,
+    val providerRegistry: com.snuggle.music.providers.ProviderRegistry,
 ) : ViewModel() {
     val query = try {
         URLDecoder.decode(savedStateHandle.get<String>("query")!!, "UTF-8")
@@ -50,22 +51,39 @@ constructor(
             filter.collect { filter ->
                 if (filter == null) {
                     if (summaryPage == null) {
-                        YouTube
-                            .searchSummary(query)
-                            .onSuccess {
-                                val hideExplicit = context.dataStore.get(HideExplicitKey, false)
-                                val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
-                                val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)
-                                summaryPage =
-                                    it.filterExplicit(
-                                        hideExplicit,
-                                    ).filterVideoSongs(hideVideoSongs).filterYoutubeShorts(hideYoutubeShorts)
-                            }.onFailure {
-                                reportException(it)
-                            }
+                        val hideExplicit = context.dataStore.get(HideExplicitKey, false)
+                        val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
+                        val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)
+
+                        // Fetch YouTube summary
+                        val ytSummary = YouTube.searchSummary(query).getOrNull()
+                        val saavnSongs = providerRegistry.jioSaavnProvider.search(query, com.snuggle.music.providers.ProviderSearchFilter.SONGS)
+                            .getOrNull()?.items.orEmpty()
+
+                        val summariesList = mutableListOf<com.music.innertube.pages.SearchSummary>()
+                        if (saavnSongs.isNotEmpty()) {
+                            summariesList.add(com.music.innertube.pages.SearchSummary("JioSaavn", saavnSongs))
+                        }
+                        if (ytSummary != null) {
+                            summariesList.addAll(ytSummary.summaries)
+                        }
+
+                        if (summariesList.isNotEmpty()) {
+                            summaryPage = SearchSummaryPage(summariesList)
+                                .filterExplicit(hideExplicit)
+                                .filterVideoSongs(hideVideoSongs)
+                                .filterYoutubeShorts(hideYoutubeShorts)
+                        }
                     }
                 } else {
-                    if (viewStateMap[filter.value] == null) {
+                    if (filter.value == FILTER_JIOSAAVN.value) {
+                        if (viewStateMap[filter.value] == null) {
+                            val saavnResult = providerRegistry.jioSaavnProvider.search(query, com.snuggle.music.providers.ProviderSearchFilter.SONGS, page = 1)
+                                .getOrNull()
+                            val items = saavnResult?.items.orEmpty()
+                            viewStateMap[filter.value] = ItemsPage(items, saavnResult?.continuation)
+                        }
+                    } else if (viewStateMap[filter.value] == null) {
                         YouTube
                             .search(query, filter)
                             .onSuccess { result ->
@@ -96,12 +114,27 @@ constructor(
     }
 
     fun loadMore() {
-        val filter = filter.value?.value
+        val filterVal = filter.value?.value
         viewModelScope.launch {
-            if (filter == null) return@launch
-            val viewState = viewStateMap[filter] ?: return@launch
+            if (filterVal == null) return@launch
+            val viewState = viewStateMap[filterVal] ?: return@launch
             val continuation = viewState.continuation
             if (continuation != null) {
+                if (filterVal == FILTER_JIOSAAVN.value) {
+                    val nextPage = continuation.toIntOrNull() ?: 2
+                    val saavnResult = providerRegistry.jioSaavnProvider.search(
+                        query = query,
+                        filter = com.snuggle.music.providers.ProviderSearchFilter.SONGS,
+                        page = nextPage
+                    ).getOrNull()
+                    val newItems = saavnResult?.items.orEmpty()
+                    viewStateMap[filterVal] = ItemsPage(
+                        (viewState.items + newItems).distinctBy { it.id },
+                        saavnResult?.continuation
+                    )
+                    return@launch
+                }
+
                 val searchResult =
                     YouTube.searchContinuation(continuation).getOrNull() ?: return@launch
                 val hideExplicit = context.dataStore.get(HideExplicitKey, false)
@@ -110,15 +143,19 @@ constructor(
                 val newItems = searchResult.items
                     .filterExplicit(hideExplicit)
                     .let { items ->
-                        if (filter == YouTube.SearchFilter.FILTER_VIDEO.value) items
+                        if (filterVal == YouTube.SearchFilter.FILTER_VIDEO.value) items
                         else items.filterVideoSongs(hideVideoSongs)
                     }
                     .filterYoutubeShorts(hideYoutubeShorts)
-                viewStateMap[filter] = ItemsPage(
+                viewStateMap[filterVal] = ItemsPage(
                     (viewState.items + newItems).distinctBy { it.id },
                     searchResult.continuation
                 )
             }
         }
+    }
+
+    companion object {
+        val FILTER_JIOSAAVN = YouTube.SearchFilter("filter_jiosaavn")
     }
 }

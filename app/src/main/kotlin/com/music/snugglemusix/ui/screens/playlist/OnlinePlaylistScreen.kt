@@ -111,6 +111,7 @@ import com.snuggle.music.constants.HideExplicitKey
 import com.snuggle.music.db.entities.Playlist
 import com.snuggle.music.db.entities.PlaylistEntity
 import com.snuggle.music.db.entities.PlaylistSongMap
+import com.snuggle.music.extensions.toMediaItem
 import com.snuggle.music.models.toMediaMetadata
 import com.snuggle.music.playback.ExoDownloadService
 import com.snuggle.music.playback.queues.YouTubePlaylistQueue
@@ -307,15 +308,25 @@ fun OnlinePlaylistScreen(
                                         } else if (songItem.id == mediaMetadata?.id) {
                                             playerConnection.togglePlayPause()
                                         } else {
-                                            playerConnection.playQueue(
-                                                YouTubePlaylistQueue(
-                                                    playlistId = playlist.id,
-                                                    playlistTitle = playlist.title,
-                                                    initialSongs = filteredSongs.map { it.second },
-                                                    initialContinuation = viewModel.continuation,
-                                                    startIndex = index
+                                            if (com.snuggle.music.providers.JioSaavnProvider.isJioSaavnId(playlist.id)) {
+                                                playerConnection.playQueue(
+                                                    com.snuggle.music.playback.queues.ListQueue(
+                                                        title = playlist.title,
+                                                        items = filteredSongs.map { it.second.toMediaMetadata().toMediaItem() },
+                                                        startIndex = index
+                                                    )
                                                 )
-                                            )
+                                            } else {
+                                                playerConnection.playQueue(
+                                                    YouTubePlaylistQueue(
+                                                        playlistId = playlist.id,
+                                                        playlistTitle = playlist.title,
+                                                        initialSongs = filteredSongs.map { it.second },
+                                                        initialContinuation = viewModel.continuation,
+                                                        startIndex = index
+                                                    )
+                                                )
+                                            }
                                         }
                                     },
                                     onLongClick = {
@@ -796,14 +807,23 @@ private fun OnlinePlaylistHeader(
                 Button(
                     onClick = {
                         if (songs.isNotEmpty()) {
-                            playerConnection.playQueue(
-                                YouTubePlaylistQueue(
-                                    playlistId = playlist.id,
-                                    playlistTitle = playlist.title,
-                                    initialSongs = songs,
-                                    initialContinuation = continuation
+                            if (com.snuggle.music.providers.JioSaavnProvider.isJioSaavnId(playlist.id)) {
+                                playerConnection.playQueue(
+                                    com.snuggle.music.playback.queues.ListQueue(
+                                        title = playlist.title,
+                                        items = songs.map { it.toMediaMetadata().toMediaItem() }
+                                    )
                                 )
-                            )
+                            } else {
+                                playerConnection.playQueue(
+                                    YouTubePlaylistQueue(
+                                        playlistId = playlist.id,
+                                        playlistTitle = playlist.title,
+                                        initialSongs = songs,
+                                        initialContinuation = continuation
+                                    )
+                                )
+                            }
                         }
                     },
                     shape = ButtonDefaults.shape,
@@ -951,14 +971,23 @@ private fun OnlinePlaylistHeader(
                     checked = false,
                     onCheckedChange = {
                         if (songs.isNotEmpty()) {
-                            playerConnection.playQueue(
-                                YouTubePlaylistQueue(
-                                    playlistId = playlist.id,
-                                    playlistTitle = playlist.title,
-                                    initialSongs = songs.shuffled(),
-                                    initialContinuation = continuation
+                            if (com.snuggle.music.providers.JioSaavnProvider.isJioSaavnId(playlist.id)) {
+                                playerConnection.playQueue(
+                                    com.snuggle.music.playback.queues.ListQueue(
+                                        title = playlist.title,
+                                        items = songs.shuffled().map { it.toMediaMetadata().toMediaItem() }
+                                    )
                                 )
-                            )
+                            } else {
+                                playerConnection.playQueue(
+                                    YouTubePlaylistQueue(
+                                        playlistId = playlist.id,
+                                        playlistTitle = playlist.title,
+                                        initialSongs = songs.shuffled(),
+                                        initialContinuation = continuation
+                                    )
+                                )
+                            }
                         }
                     },
                     modifier = Modifier.weight(1f).semantics { role = Role.Button },

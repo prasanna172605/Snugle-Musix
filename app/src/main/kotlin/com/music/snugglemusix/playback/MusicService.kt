@@ -241,6 +241,9 @@ class MusicService :
     @Inject
     lateinit var listenTogetherManager: com.snuggle.music.listentogether.ListenTogetherManager
 
+    @Inject
+    lateinit var providerRegistry: com.snuggle.music.providers.ProviderRegistry
+
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private lateinit var audioManager: AudioManager
@@ -1166,21 +1169,39 @@ class MusicService :
             }
         }
         if (!database.hasRelatedSongs(mediaId)) {
-            val relatedEndpoint =
-                YouTube.next(WatchEndpoint(videoId = mediaId)).getOrNull()?.relatedEndpoint
-                    ?: return
-            val relatedPage = YouTube.related(relatedEndpoint).getOrNull() ?: return
-            database.query {
-                relatedPage.songs
-                    .map(SongItem::toMediaMetadata)
-                    .onEach(::insert)
-                    .map {
-                        RelatedSongMap(
-                            songId = mediaId,
-                            relatedSongId = it.id
-                        )
+            if (com.snuggle.music.providers.JioSaavnProvider.isJioSaavnId(mediaId)) {
+                val recoSongs = providerRegistry.jioSaavnProvider.getRecommendations(mediaId).getOrNull().orEmpty()
+                if (recoSongs.isNotEmpty()) {
+                    database.query {
+                        recoSongs
+                            .map(SongItem::toMediaMetadata)
+                            .onEach(::insert)
+                            .map {
+                                RelatedSongMap(
+                                    songId = mediaId,
+                                    relatedSongId = it.id
+                                )
+                            }
+                            .forEach(::insert)
                     }
-                    .forEach(::insert)
+                }
+            } else {
+                val relatedEndpoint =
+                    YouTube.next(WatchEndpoint(videoId = mediaId)).getOrNull()?.relatedEndpoint
+                        ?: return
+                val relatedPage = YouTube.related(relatedEndpoint).getOrNull() ?: return
+                database.query {
+                    relatedPage.songs
+                        .map(SongItem::toMediaMetadata)
+                        .onEach(::insert)
+                        .map {
+                            RelatedSongMap(
+                                songId = mediaId,
+                                relatedSongId = it.id
+                            )
+                        }
+                        .forEach(::insert)
+                }
             }
         }
     }
@@ -1257,6 +1278,35 @@ class MusicService :
                 val shufflePlaylistFirst = dataStore.get(ShufflePlaylistFirstKey, false)
                 applyShuffleOrder(player.currentMediaItemIndex, player.mediaItemCount, shufflePlaylistFirst)
             }
+
+            // Populate the "Similar Content" automix for JioSaavn single-song queues
+            if (queue is com.snuggle.music.playback.queues.JioSaavnQueue &&
+                dataStore.get(SimilarContent, true)
+            ) {
+                val songId = queue.initialSong.id
+                scope.launch(SilentHandler) {
+                    val rawSongs = withContext(Dispatchers.IO) {
+                        providerRegistry.jioSaavnProvider.getRecommendations(songId).getOrNull().orEmpty()
+                            .filter { it.id != songId }
+                    }
+                    val finalSongs = if (rawSongs.isNotEmpty()) {
+                        val region = providerRegistry.regionalPreferenceManager.getActiveRegion()
+                        val taste = providerRegistry.tasteProfileEngine.computeTasteProfile()
+                        providerRegistry.recommendationScorer.rankAndDiversify(
+                            items = rawSongs,
+                            region = region,
+                            tasteProfile = taste
+                        )
+                    } else rawSongs
+
+                    val recoItems = finalSongs
+                        .map { it.toMediaMetadata().toMediaItem() }
+                        .filterExplicit(dataStore.get(HideExplicitKey, false))
+                    if (recoItems.isNotEmpty()) {
+                        automixItems.value = recoItems
+                    }
+                }
+            }
         }
     }
 
@@ -1273,7 +1323,42 @@ class MusicService :
         val currentMediaId = currentMediaMetadata.id
 
         scope.launch(SilentHandler) {
-            
+            if (com.snuggle.music.providers.JioSaavnProvider.isJioSaavnId(currentMediaId)) {
+                try {
+                    val rawSongs = providerRegistry.jioSaavnProvider.getRecommendations(currentMediaId).getOrNull().orEmpty()
+                        .filter { it.id != currentMediaId }
+
+                    val finalSongs = if (rawSongs.isNotEmpty()) {
+                        val region = providerRegistry.regionalPreferenceManager.getActiveRegion()
+                        val taste = providerRegistry.tasteProfileEngine.computeTasteProfile()
+                        providerRegistry.recommendationScorer.rankAndDiversify(
+                            items = rawSongs,
+                            region = region,
+                            tasteProfile = taste
+                        )
+                    } else rawSongs
+
+                    val radioItems = finalSongs
+                        .map { it.toMediaMetadata().toMediaItem() }
+                        .filterExplicit(dataStore.get(HideExplicitKey, false))
+
+                    if (radioItems.isNotEmpty()) {
+                        val itemCount = player.mediaItemCount
+                        if (itemCount > currentIndex + 1) {
+                            player.removeMediaItems(currentIndex + 1, itemCount)
+                        }
+                        player.addMediaItems(currentIndex + 1, radioItems)
+                        if (player.shuffleModeEnabled) {
+                            val shufflePlaylistFirst = dataStore.get(ShufflePlaylistFirstKey, false)
+                            applyShuffleOrder(player.currentMediaItemIndex, player.mediaItemCount, shufflePlaylistFirst)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Timber.w(e, "Failed to start JioSaavn radio seamlessly")
+                }
+                return@launch
+            }
+
             val radioQueue = YouTubeQueue(
                 endpoint = WatchEndpoint(
                     videoId = currentMediaId
@@ -1382,29 +1467,35 @@ class MusicService :
                                 }
                         }
                         .onFailure {
-                            
                             val currentSong = player.currentMetadata
                             if (currentSong != null) {
-                                
-                                YouTube.next(WatchEndpoint(
-                                    videoId = currentSong.id
-                                )).onSuccess { radioResult ->
-                                    val filteredItems = radioResult.items
+                                if (com.snuggle.music.providers.JioSaavnProvider.isJioSaavnId(currentSong.id)) {
+                                    val recoSongs = providerRegistry.jioSaavnProvider.getRecommendations(currentSong.id).getOrNull().orEmpty()
+                                    val filteredItems = recoSongs
                                         .filter { it.id != currentSong.id }
-                                        .map { it.toMediaItem() }
+                                        .map { it.toMediaMetadata().toMediaItem() }
                                     if (filteredItems.isNotEmpty()) {
                                         automixItems.value = filteredItems
                                     }
-                                }.onFailure {
-                                    
-                                    YouTube.next(WatchEndpoint(videoId = currentSong.id)).getOrNull()?.relatedEndpoint?.let { relatedEndpoint ->
-                                        YouTube.related(relatedEndpoint).onSuccess { relatedPage ->
-                                            val relatedItems = relatedPage.songs
-                                                .filter { it.id != currentSong.id }
-                                                .map { it.toMediaItem() }
-                                            if (relatedItems.isNotEmpty()) {
-                                                automixItems.value = relatedItems
-
+                                } else {
+                                    YouTube.next(WatchEndpoint(
+                                        videoId = currentSong.id
+                                    )).onSuccess { radioResult ->
+                                        val filteredItems = radioResult.items
+                                            .filter { it.id != currentSong.id }
+                                            .map { it.toMediaItem() }
+                                        if (filteredItems.isNotEmpty()) {
+                                            automixItems.value = filteredItems
+                                        }
+                                    }.onFailure {
+                                        YouTube.next(WatchEndpoint(videoId = currentSong.id)).getOrNull()?.relatedEndpoint?.let { relatedEndpoint ->
+                                            YouTube.related(relatedEndpoint).onSuccess { relatedPage ->
+                                                val relatedItems = relatedPage.songs
+                                                    .filter { it.id != currentSong.id }
+                                                    .map { it.toMediaItem() }
+                                                if (relatedItems.isNotEmpty()) {
+                                                    automixItems.value = relatedItems
+                                                }
                                             }
                                         }
                                     }
@@ -1820,7 +1911,27 @@ class MusicService :
             }
         }
 
-        
+        // When transitioning to a JioSaavn song, refresh automix suggestions for that song
+        val newMediaId = mediaItem?.mediaId
+        if (newMediaId != null &&
+            com.snuggle.music.providers.JioSaavnProvider.isJioSaavnId(newMediaId) &&
+            dataStore.get(SimilarContent, true) &&
+            !(dataStore.get(DisableLoadMoreWhenRepeatAllKey, false) && player.repeatMode == REPEAT_MODE_ALL)
+        ) {
+            scope.launch(SilentHandler) {
+                val recoSongs = withContext(Dispatchers.IO) {
+                    providerRegistry.jioSaavnProvider.getRecommendations(newMediaId).getOrNull().orEmpty()
+                }
+                val recoItems = recoSongs
+                    .filter { it.id != newMediaId }
+                    .map { it.toMediaMetadata().toMediaItem() }
+                    .filterExplicit(dataStore.get(HideExplicitKey, false))
+                if (recoItems.isNotEmpty()) {
+                    automixItems.value = recoItems
+                }
+            }
+        }
+
         if (dataStore.get(PersistentQueueKey, true)) {
             saveQueueToDisk()
         }
@@ -2220,6 +2331,12 @@ class MusicService :
                 handleGenericIOError(mediaId)
                 return
             }
+            error.errorCode == PlaybackException.ERROR_CODE_REMOTE_ERROR -> {
+                Timber.tag(TAG).w("Stream is unplayable on remote server for $mediaId, skipping without infinite retry")
+                if (mediaId != null) markSongAsFailed(mediaId)
+                handleFinalFailure()
+                return
+            }
         }
 
         
@@ -2231,13 +2348,8 @@ class MusicService :
         }
 
         
-        if (dataStore.get(AutoSkipNextOnErrorKey, false)) {
-            Timber.tag(TAG).d("Auto-skipping to next track due to unrecoverable error")
-            skipOnError()
-        } else {
-            Timber.tag(TAG).d("Stopping playback due to unrecoverable error")
-            stopOnError()
-        }
+        if (mediaId != null) markSongAsFailed(mediaId)
+        handleFinalFailure()
     }
 
     
@@ -2703,7 +2815,8 @@ class MusicService :
                 val isAacCache = dbFormat.mimeType.contains("mp4", ignoreCase = true) || dbFormat.mimeType.contains("m4a", ignoreCase = true)
                 
                 val cacheMatchesTarget = when (lockedQuality) {
-                    com.snuggle.music.constants.AudioQuality.LOSSLESS -> isAacCache
+                    com.snuggle.music.constants.AudioQuality.LOSSLESS,
+                    com.snuggle.music.constants.AudioQuality.MP4_LATM -> isAacCache
                     com.snuggle.music.constants.AudioQuality.OPUS,
                     com.snuggle.music.constants.AudioQuality.SAAVN -> !isAacCache
                 }
@@ -2752,6 +2865,42 @@ class MusicService :
             }
 
             Timber.tag("MusicService").i("FETCHING STREAM: $mediaId | quality=$lockedQuality")
+            if (com.snuggle.music.providers.JioSaavnProvider.isJioSaavnId(mediaId)) {
+                val saavnStream = runBlocking(Dispatchers.IO) {
+                    providerRegistry.jioSaavnProvider.resolveStream(mediaId, lockedQuality)
+                }.getOrElse { throwable ->
+                    throw androidx.media3.common.PlaybackException(
+                        throwable.message ?: getString(R.string.error_unknown),
+                        throwable,
+                        androidx.media3.common.PlaybackException.ERROR_CODE_REMOTE_ERROR
+                    )
+                }
+
+                database.query {
+                    upsert(
+                        FormatEntity(
+                            id = mediaId,
+                            itag = 140,
+                            mimeType = saavnStream.mimeType,
+                            codecs = saavnStream.codecs,
+                            bitrate = saavnStream.bitrate,
+                            sampleRate = saavnStream.sampleRate,
+                            contentLength = saavnStream.contentLength,
+                            loudnessDb = null,
+                            perceptualLoudnessDb = null,
+                            playbackUrl = saavnStream.mediaUrl
+                        )
+                    )
+                }
+
+                songUrlCache["${mediaId}_${lockedQuality.name}"] =
+                    saavnStream.mediaUrl to (System.currentTimeMillis() + saavnStream.expiresInSeconds * 1000L)
+
+                val outDataSpec = dataSpec.withUri(saavnStream.mediaUrl.toUri()).subrange(dataSpec.uriPositionOffset, chunkLength)
+                Timber.tag("Saavn Resolve").i("[Saavn Resolve] Media3 started: $mediaId (host=${outDataSpec.uri.host})")
+                return@Factory outDataSpec
+            }
+
             val playbackData = runBlocking(Dispatchers.IO) {
                 val dbSong = database.song(mediaId).firstOrNull()
                 val knownArtist = dbSong?.artists?.joinToString { it.name }?.replace(" - Topic", "")

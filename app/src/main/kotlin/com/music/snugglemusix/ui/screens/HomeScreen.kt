@@ -71,6 +71,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -148,6 +149,8 @@ import com.snuggle.music.ui.component.RandomizeGridItem
 import com.snuggle.music.ui.component.shimmer.GridItemPlaceHolder
 import com.snuggle.music.ui.component.shimmer.ShimmerHost
 import com.snuggle.music.ui.component.shimmer.TextPlaceholder
+import com.snuggle.music.providers.ProviderRegistry
+import com.snuggle.music.ui.component.JioSaavnArtistCoverCache
 import com.snuggle.music.ui.component.SongGridItem
 import com.snuggle.music.ui.component.SongListItem
 import com.snuggle.music.ui.component.SpeedDialGridItem
@@ -242,42 +245,52 @@ fun CommunityPlaylistCard(
                         .size(100.dp)
                         .clip(RoundedCornerShape(12.dp))
                 ) {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        Row(modifier = Modifier.weight(1f)) {
-                            AsyncImage(
-                                model = item.songs.getOrNull(0)?.thumbnail?.resize(544, 544),
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxSize()
-                            )
-                            AsyncImage(
-                                model = item.songs.getOrNull(1)?.thumbnail?.resize(544, 544),
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxSize()
-                            )
-                        }
-                        Row(modifier = Modifier.weight(1f)) {
-                            AsyncImage(
-                                model = item.songs.getOrNull(2)?.thumbnail?.resize(544, 544),
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxSize()
-                            )
-                            AsyncImage(
-                                model = item.songs.getOrNull(3)?.thumbnail?.resize(544, 544),
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxSize()
-                            )
+                    val plThumb = item.playlist.thumbnail
+                    if (!plThumb.isNullOrBlank()) {
+                        AsyncImage(
+                            model = plThumb.resize(544, 544),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            Row(modifier = Modifier.weight(1f)) {
+                                AsyncImage(
+                                    model = item.songs.getOrNull(0)?.thumbnail?.resize(544, 544),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxSize()
+                                )
+                                AsyncImage(
+                                    model = item.songs.getOrNull(1)?.thumbnail?.resize(544, 544),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxSize()
+                                )
+                            }
+                            Row(modifier = Modifier.weight(1f)) {
+                                AsyncImage(
+                                    model = item.songs.getOrNull(2)?.thumbnail?.resize(544, 544),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxSize()
+                                )
+                                AsyncImage(
+                                    model = item.songs.getOrNull(3)?.thumbnail?.resize(544, 544),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxSize()
+                                )
+                            }
                         }
                     }
                 }
@@ -353,8 +366,19 @@ fun CommunityPlaylistCard(
             ) {
                 IconButton(
                     onClick = {
-                        item.playlist.playEndpoint?.let {
-                            playerConnection?.playQueue(YouTubeQueue(it))
+                        if (com.snuggle.music.providers.JioSaavnProvider.isJioSaavnId(item.playlist.id)) {
+                            if (item.songs.isNotEmpty()) {
+                                playerConnection?.playQueue(
+                                    com.snuggle.music.playback.queues.ListQueue(
+                                        title = item.playlist.title,
+                                        items = item.songs.map { it.toMediaMetadata().toMediaItem() }
+                                    )
+                                )
+                            }
+                        } else {
+                            item.playlist.playEndpoint?.let {
+                                playerConnection?.playQueue(YouTubeQueue(it))
+                            }
                         }
                     },
                     modifier = Modifier
@@ -371,8 +395,19 @@ fun CommunityPlaylistCard(
 
                 IconButton(
                     onClick = {
-                        item.playlist.radioEndpoint?.let {
-                            playerConnection?.playQueue(YouTubeQueue(it))
+                        if (com.snuggle.music.providers.JioSaavnProvider.isJioSaavnId(item.playlist.id)) {
+                            if (item.songs.isNotEmpty()) {
+                                playerConnection?.playQueue(
+                                    com.snuggle.music.playback.queues.ListQueue(
+                                        title = item.playlist.title,
+                                        items = item.songs.shuffled().map { it.toMediaMetadata().toMediaItem() }
+                                    )
+                                )
+                            }
+                        } else {
+                            item.playlist.radioEndpoint?.let {
+                                playerConnection?.playQueue(YouTubeQueue(it))
+                            }
                         }
                     },
                     modifier = Modifier
@@ -403,10 +438,18 @@ fun CommunityPlaylistCard(
                                     ).toggleLike()
                                     insert(playlistEntity)
                                     scope.launch(Dispatchers.IO) {
-                                        item.songs.ifEmpty {
-                                            YouTube.playlist(item.playlist.id).completed()
-                                                .getOrNull()?.songs.orEmpty()
-                                        }.map { it.toMediaMetadata() }
+                                        val songList = if (com.snuggle.music.providers.JioSaavnProvider.isJioSaavnId(item.playlist.id)) {
+                                            item.songs.ifEmpty {
+                                                com.snuggle.music.providers.ProviderRegistry.activeInstance?.jioSaavnProvider
+                                                    ?.getPlaylist(item.playlist.id)?.getOrNull()?.second.orEmpty()
+                                            }
+                                        } else {
+                                            item.songs.ifEmpty {
+                                                YouTube.playlist(item.playlist.id).completed()
+                                                    .getOrNull()?.songs.orEmpty()
+                                            }
+                                        }
+                                        songList.map { it.toMediaMetadata() }
                                             .onEach(::insert)
                                             .mapIndexed { index, song ->
                                                 PlaylistSongMap(
@@ -590,6 +633,7 @@ fun HomeScreen(
     val allLocalItems by viewModel.allLocalItems.collectAsState()
     val allYtItems by viewModel.allYtItems.collectAsState()
     val speedDialItems by viewModel.speedDialItems.collectAsState()
+    val hasEnoughListeningHistory by viewModel.hasEnoughListeningHistory.collectAsState()
     val selectedChip by viewModel.selectedChip.collectAsState()
 
     val isLoading: Boolean by viewModel.isLoading.collectAsState()
@@ -807,6 +851,9 @@ fun HomeScreen(
     val homeSections = remember(
         randomizeHomeOrder,
         randomSeed,
+        selectedChip,
+        showSpeedDial,
+        hasEnoughListeningHistory,
         speedDialItems,
         quickPicks,
         dailyDiscover,
@@ -820,7 +867,19 @@ fun HomeScreen(
     ) {
         val list = mutableListOf<HomeSection>()
 
-        if (showSpeedDial && speedDialItems.isNotEmpty()) list.add(HomeSection.SpeedDial)
+        // When a mood/genre chip is selected (e.g. Romance, Relax, Feel Good, Sad, Energy),
+        // show ONLY the mood-filtered sections returned for that chip so the feed accurately matches the selected mood.
+        if (selectedChip != null) {
+            homePage?.sections?.indices?.forEach { i ->
+                list.add(HomeSection.HomePageSection(i))
+            }
+            return@remember list
+        }
+
+        // Standard feed: only show Speed Dial if user has enough genuine listening history (10+ songs played)
+        if (showSpeedDial && hasEnoughListeningHistory && speedDialItems.isNotEmpty()) {
+            list.add(HomeSection.SpeedDial)
+        }
         if (quickPicks?.isNotEmpty() == true) list.add(HomeSection.QuickPicks)
         if (communityPlaylists?.isNotEmpty() == true) list.add(HomeSection.FromTheCommunity)
         if (dailyDiscover?.isNotEmpty() == true) list.add(HomeSection.DailyDiscover)
@@ -1366,12 +1425,18 @@ fun HomeScreen(
                                                     navController.navigate("online_playlist/${item.playlist.id.removePrefix("VL")}")
                                                 },
                                                 onSongClick = { song ->
-                                                    playerConnection.playQueue(
-                                                        YouTubeQueue(
-                                                            song.endpoint ?: WatchEndpoint(videoId = song.id),
-                                                            song.toMediaMetadata()
+                                                    if (com.snuggle.music.providers.JioSaavnProvider.isJioSaavnId(song.id)) {
+                                                        playerConnection.playQueue(
+                                                            com.snuggle.music.playback.queues.JioSaavnQueue(song)
                                                         )
-                                                    )
+                                                    } else {
+                                                        playerConnection.playQueue(
+                                                            YouTubeQueue(
+                                                                song.endpoint ?: WatchEndpoint(videoId = song.id),
+                                                                song.toMediaMetadata()
+                                                            )
+                                                        )
+                                                    }
                                                 }
                                             )
                                         }
@@ -1424,7 +1489,9 @@ fun HomeScreen(
                                                     }
                                                 },
                                                 navController = navController,
-                                                modifier = Modifier.clip(MaterialTheme.shapes.extraLarge)
+                                                modifier = Modifier
+                                                    .size(240.dp)
+                                                    .clip(MaterialTheme.shapes.extraLarge)
                                             )
                                         }
                                     }
@@ -1624,12 +1691,28 @@ fun HomeScreen(
                                         title = recommendation.title.title,
                                         thumbnail = recommendation.title.thumbnailUrl?.let { thumbnailUrl ->
                                             {
+                                                val isArtist = recommendation.title is Artist
                                                 val shape =
-                                                    if (recommendation.title is Artist) CircleShape else RoundedCornerShape(
+                                                    if (isArtist) CircleShape else RoundedCornerShape(
                                                         ThumbnailCornerRadius
                                                     )
+                                                val resolvedThumbnail by produceState(initialValue = thumbnailUrl, recommendation.title.id) {
+                                                    if (isArtist) {
+                                                        val name = recommendation.title.title
+                                                        if (JioSaavnArtistCoverCache.isCached(name)) {
+                                                            val cached = JioSaavnArtistCoverCache.get(name)
+                                                            value = if (!cached.isNullOrEmpty()) cached else thumbnailUrl
+                                                        } else {
+                                                            val cover = withContext(Dispatchers.IO) {
+                                                                ProviderRegistry.activeInstance?.jioSaavnProvider?.getArtistCover(name)
+                                                            }
+                                                            JioSaavnArtistCoverCache.put(name, cover)
+                                                            value = if (!cover.isNullOrEmpty()) cover else thumbnailUrl
+                                                        }
+                                                    }
+                                                }
                                                 AsyncImage(
-                                                    model = thumbnailUrl,
+                                                    model = resolvedThumbnail,
                                                     contentDescription = null,
                                                     modifier = Modifier
                                                         .size(ListThumbnailSize)

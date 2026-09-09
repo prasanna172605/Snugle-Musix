@@ -60,6 +60,7 @@ import com.snuggle.music.LocalPlayerAwareWindowInsets
 import com.snuggle.music.LocalPlayerConnection
 import com.snuggle.music.R
 import com.snuggle.music.constants.SuggestionItemHeight
+import com.snuggle.music.extensions.toMediaItem
 import com.snuggle.music.models.toMediaMetadata
 import com.snuggle.music.playback.queues.YouTubeQueue
 import com.snuggle.music.ui.component.LocalMenuState
@@ -287,9 +288,15 @@ fun OnlineSearchScreen(
                                     if (item.id == mediaMetadata?.id) {
                                         playerConnection.togglePlayPause()
                                     } else {
-                                        playerConnection.playQueue(
-                                            YouTubeQueue.radio(item.toMediaMetadata())
-                                        )
+                                        if (com.snuggle.music.providers.JioSaavnProvider.isJioSaavnId(item.id)) {
+                                            playerConnection.playQueue(
+                                                com.snuggle.music.playback.queues.JioSaavnQueue(item)
+                                            )
+                                        } else {
+                                            playerConnection.playQueue(
+                                                YouTubeQueue.radio(item.toMediaMetadata())
+                                            )
+                                        }
                                         onDismiss()
                                     }
                                 }

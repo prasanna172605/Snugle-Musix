@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snuggle Musix - Listen Together</title>
+    <meta name="description" content="Join real-time music listening session on Snuggle Musix">
+    <meta property="og:title" content="Snuggle Musix - Listen Together">
+    <meta property="og:description" content="Click to join synchronized music playback on Snuggle Musix.">
+    <meta property="og:type" content="music.song">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #FF3366;
+            --primary-glow: rgba(255, 51, 102, 0.35);
+            --bg-dark: #0A0D14;
+            --surface: #151A24;
+            --surface-card: #1D2330;
+            --text-main: #FFFFFF;
+            --text-sub: #9EABBC;
+            --border: rgba(255, 255, 255, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 50% 15%, rgba(255, 51, 102, 0.15), transparent 45%),
+                radial-gradient(circle at 80% 80%, rgba(99, 102, 241, 0.1), transparent 50%);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 440px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            padding: 36px 28px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(16px);
+            text-align: center;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .app-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 51, 102, 0.12);
+            color: var(--primary);
+            padding: 6px 14px;
+            border-radius: 99px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+        }
+
+        .vinyl-container {
+            position: relative;
+            width: 110px;
+            height: 110px;
+            margin: 0 auto 24px;
+        }
+
+        .vinyl {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, #222 30%, #111 60%, #050505 100%);
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5), 0 0 30px var(--primary-glow);
+            animation: spin 8s linear infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        .vinyl-center {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, #FF3366, #FF6584);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .vinyl-center svg {
+            width: 20px;
+            height: 20px;
+            fill: #FFFFFF;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        p.subtitle {
+            color: var(--text-sub);
+            font-size: 0.95rem;
+            line-height: 1.4;
+            margin-bottom: 24px;
+        }
+
+        .code-card {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .code-label {
+            font-size: 0.75rem;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+
+        .code-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--primary);
+            letter-spacing: 4px;
+            font-family: monospace;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 15px;
+            border-radius: 16px;
+            font-size: 1rem;
+            font-weight: 700;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #FFFFFF;
+            box-shadow: 0 8px 24px var(--primary-glow);
+            margin-bottom: 12px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(255, 51, 102, 0.5);
+        }
+
+        .btn-secondary {
+            background: var(--surface-card);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.06);
+            transform: translateY(-2px);
+        }
+
+        .helper-text {
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            margin-top: 18px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="app-badge">Snuggle Musix Sync</div>
+    
+    <div class="vinyl-container">
+        <div class="vinyl">
+            <div class="vinyl-center">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <h1>Listen Together</h1>
+    <p class="subtitle">You have been invited to synchronize real-time music playback.</p>
+
+    <div class="code-card">
+        <div class="code-label">Room Invite Code</div>
+        <div class="code-value" id="roomCodeDisplay">------</div>
+    </div>
+
+    <button class="btn btn-primary" id="openAppBtn" onclick="openApp()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8 5v14l11-7z"/>
+        </svg>
+        Open in Snuggle Musix
+    </button>
+
+    <a href="https://github.com/prasanna172605/Snugle-Musix/releases/latest" class="btn btn-secondary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Download App APK
+    </a>
+
+    <div class="helper-text">
+        Opening Snuggle Musix automatically... If nothing happens, tap the button above.
+    </div>
+</div>
+
+<script>
+    function getRoomCode() {
+        const urlParams = new URLSearchParams(window.location.search);
+        let code = urlParams.get('code') || urlParams.get('room');
+        if (!code) {
+            const segments = window.location.pathname.split('/').filter(Boolean);
+            const listenIndex = segments.indexOf('listen');
+            if (listenIndex !== -1 && segments[listenIndex + 1]) {
+                code = segments[listenIndex + 1];
+            }
+        }
+        return (code || "").trim().toUpperCase();
+    }
+
+    const code = getRoomCode();
+    if (code) {
+        document.getElementById('roomCodeDisplay').textContent = code;
+    } else {
+        document.getElementById('roomCodeDisplay').textContent = "READY";
+    }
+
+    function openApp() {
+        const roomCode = getRoomCode();
+        const customSchemeUrl = "snugglemusix://listen?code=" + encodeURIComponent(roomCode);
+        const intentUrl = "intent://listen?code=" + encodeURIComponent(roomCode) + "#Intent;scheme=snugglemusix;package=com.snuggle.music;end";
+
+        // Try direct intent for Chrome/Android
+        window.location.href = intentUrl;
+
+        // Fallback for third-party browser environments (e.g. Firefox, Telegram, WhatsApp WebViews)
+        setTimeout(() => {
+            window.location.href = customSchemeUrl;
+        }, 350);
+    }
+
+    // Auto-launch intent when opened
+    window.addEventListener('DOMContentLoaded', () => {
+        if (code) {
+            setTimeout(openApp, 400);
+        }
+    });
+</script>
+
+</body>
+</html>
