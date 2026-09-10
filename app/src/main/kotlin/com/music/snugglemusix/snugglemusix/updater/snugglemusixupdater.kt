@@ -318,21 +318,28 @@ fun UpdateScreen(navController: NavHostController) {
                                             }
                                             file.let { f ->
                                                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                                    if (!context.packageManager.canRequestPackageInstalls()) {
-                                                        val intent = Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
-                                                            data = Uri.parse("package:${context.packageName}")
+                                                    val canInstall = runCatching {
+                                                        context.packageManager.canRequestPackageInstalls()
+                                                    }.getOrDefault(false)
+                                                    if (!canInstall) {
+                                                        runCatching {
+                                                            val intent = Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                                                                data = Uri.parse("package:${context.packageName}")
+                                                            }
+                                                            context.startActivity(intent)
                                                         }
-                                                        context.startActivity(intent)
                                                         return@let
                                                     }
                                                 }
-                                                val uri = FileProvider.getUriForFile(context, "${context.packageName}.FileProvider", file)
-                                                val installIntent = Intent(Intent.ACTION_VIEW).apply {
-                                                    setDataAndType(uri, "application/vnd.android.package-archive")
-                                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                runCatching {
+                                                    val uri = FileProvider.getUriForFile(context, "${context.packageName}.FileProvider", file)
+                                                    val installIntent = Intent(Intent.ACTION_VIEW).apply {
+                                                        setDataAndType(uri, "application/vnd.android.package-archive")
+                                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                    }
+                                                    ContextCompat.startActivity(context, installIntent, null)
                                                 }
-                                                ContextCompat.startActivity(context, installIntent, null)
                                             }
                                         } else {
                                             val cleanVersion = currentStatus.version.removePrefix("v")
