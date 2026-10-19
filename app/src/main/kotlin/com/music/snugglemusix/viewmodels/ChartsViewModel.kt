@@ -10,6 +10,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 
 @HiltViewModel
@@ -24,7 +25,7 @@ class ChartsViewModel @Inject constructor() : ViewModel() {
     val error = _error.asStateFlow()
 
     fun loadCharts() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             _isLoading.value = true
             _error.value = null
             
@@ -41,7 +42,7 @@ class ChartsViewModel @Inject constructor() : ViewModel() {
     }
 
     fun loadMore() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             _chartsPage.value?.continuation?.let { continuation ->
                 _isLoading.value = true
                 YouTube.getChartsPage(continuation)

@@ -47,6 +47,7 @@ import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -55,6 +56,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -141,7 +143,7 @@ fun SearchScreen(
 
     val context = LocalContext.current
     val useLiquidGlassUi = false
-    val backdrop = com.snuggle.music.ui.component.LocalPlatformBackdrop.current
+    val backdrop = com.snuggle.music.ui.component.LocalAppBackdrop.current
     var showVoiceSearchDialog by remember { mutableStateOf(false) }
     
     val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
@@ -166,14 +168,21 @@ fun SearchScreen(
     val pauseSearchHistory by rememberPreference(PauseSearchHistoryKey, defaultValue = false)
     var isFirstLaunch by rememberSaveable { mutableStateOf(true) }
     
-    var selectedTabIndex by rememberSaveable { mutableStateOf(0) }
     var searchActive by rememberSaveable { mutableStateOf(false) }
     var showSearchContent by remember { mutableStateOf(false) }
 
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val focusSearchBarState = backStackEntry?.savedStateHandle?.getStateFlow<Boolean>("focusSearchBar", false)?.collectAsState()
+
+    LaunchedEffect(focusSearchBarState?.value) {
+        if (focusSearchBarState?.value == true) {
+            searchActive = true
+            backStackEntry?.savedStateHandle?.set("focusSearchBar", false)
+        }
+    }
+
     LaunchedEffect(searchActive) {
         if (searchActive) {
-            
-            
             kotlinx.coroutines.delay(100)
             showSearchContent = true
         } else {
@@ -398,57 +407,6 @@ fun SearchScreen(
                     }
                 }
 
-                AnimatedVisibility(
-                    visible = !searchActive,
-                    enter = expandVertically(animationSpec = tween(durationMillis = 245, easing = FastOutSlowInEasing)) + fadeIn(),
-                    exit = shrinkVertically(animationSpec = tween(durationMillis = 245, easing = FastOutSlowInEasing)) + fadeOut()
-                ) {
-                    Column {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        SecondaryTabRow(
-                            selectedTabIndex = selectedTabIndex,
-                            containerColor = Color.Transparent,
-                            indicator = {
-                                Box(
-                                    modifier = Modifier
-                                        .tabIndicatorOffset(selectedTabIndex)
-                                        .fillMaxWidth(),
-                                    contentAlignment = Alignment.BottomCenter
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .width(32.dp)
-                                            .height(3.dp)
-                                            .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
-                                            .background(MaterialTheme.colorScheme.primary)
-                                    )
-                                }
-                            }
-                        ) {
-                            Tab(
-                                selected = selectedTabIndex == 0,
-                                onClick = { selectedTabIndex = 0 },
-                                selectedContentColor = MaterialTheme.colorScheme.primary,
-                                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                text = { Text(stringResource(R.string.tab_explore)) }
-                            )
-                            Tab(
-                                selected = selectedTabIndex == 1,
-                                onClick = { selectedTabIndex = 1 },
-                                selectedContentColor = MaterialTheme.colorScheme.primary,
-                                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                text = { Text(stringResource(R.string.tab_Suggestions)) }
-                            )
-                            Tab(
-                                selected = selectedTabIndex == 2,
-                                onClick = { selectedTabIndex = 2 },
-                                selectedContentColor = MaterialTheme.colorScheme.primary,
-                                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                text = { Text(stringResource(R.string.tab_album)) }
-                            )
-                        }
-                    }
-                }
             }
         },
         containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.background
@@ -462,11 +420,7 @@ fun SearchScreen(
         ) {
             if (!searchActive) {
                 val tabPadding = PaddingValues(bottom = bottomPadding)
-                when (selectedTabIndex) {
-                    0 -> ExploreTabContent(navController = navController, contentPadding = tabPadding)
-                    1 -> SuggestionsTabContent(navController = navController, contentPadding = tabPadding)
-                    2 -> AlbumsTabContent(navController = navController, contentPadding = tabPadding)
-                }
+                SuggestionsTabContent(navController = navController, contentPadding = tabPadding)
             }
         }
     }

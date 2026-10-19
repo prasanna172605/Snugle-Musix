@@ -184,3 +184,53 @@ fun BoxScope.HideOnScrollFAB(
         }
     }
 }
+
+@Composable
+fun BoxScope.HideOnScrollFAB(
+    visible: Boolean = true,
+    @DrawableRes icon: Int,
+    onClick: () -> Unit,
+    onRecognitionClick: (() -> Unit)? = null,
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = slideInVertically { it },
+        exit = slideOutVertically { it },
+        modifier =
+        Modifier
+            .align(Alignment.BottomEnd)
+            .windowInsetsPadding(
+                LocalPlayerAwareWindowInsets.current
+                    .only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal),
+            ),
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(end = 16.dp, bottom = 64.dp)
+        ) {
+            if (onRecognitionClick != null) {
+                SmallFloatingActionButton(
+                    onClick = onRecognitionClick,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.mic),
+                        contentDescription = stringResource(R.string.recognize_music),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+            FloatingActionButton(
+                onClick = onClick,
+            ) {
+                Icon(
+                    painter = painterResource(icon),
+                    contentDescription = null,
+                )
+            }
+        }
+    }
+}

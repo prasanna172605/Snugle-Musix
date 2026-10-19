@@ -52,7 +52,7 @@ class AccountViewModel @Inject constructor(
     }
 
     init {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             loadPlaylists()
             YouTube.library("FEmusic_liked_albums").completed().onSuccess {
                 albums.value = it.items.filterIsInstance<AlbumItem>()

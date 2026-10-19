@@ -12,18 +12,29 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+import kotlinx.coroutines.Dispatchers
+import com.snuggle.music.personalization.RegionalPreferenceManager
+
 @HiltViewModel
 class MoodAndGenresViewModel
 @Inject
-constructor() : ViewModel() {
+constructor(
+    private val regionalPreferenceManager: RegionalPreferenceManager
+) : ViewModel() {
     val moodAndGenres = MutableStateFlow<List<MoodAndGenres>?>(null)
 
     init {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             YouTube
                 .moodAndGenres()
-                .onSuccess {
-                    moodAndGenres.value = it
+                .onSuccess { list ->
+                    val region = regionalPreferenceManager.getActiveRegion()
+                    val primaryLang = region.languageDisplayName.lowercase()
+                    
+                    val sortedList = list.sortedByDescending {
+                        it.title.lowercase().contains(primaryLang) || it.title.lowercase() == primaryLang
+                    }
+                    moodAndGenres.value = sortedList
                 }.onFailure {
                     reportException(it)
                 }

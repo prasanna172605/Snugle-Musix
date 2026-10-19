@@ -12,6 +12,7 @@ import com.music.innertube.models.SectionListRenderer
 import com.music.innertube.models.SongItem
 import com.music.innertube.models.YTItem
 import com.music.innertube.models.oddElements
+import com.music.innertube.models.filterBlockedArtists
 import com.music.innertube.models.filterExplicit
 import com.music.innertube.models.filterVideoSongs
 
@@ -20,6 +21,9 @@ data class HomePage(
     val sections: List<Section>,
     val continuation: String? = null,
 ) {
+    fun filterBlockedArtists() =
+        copy(sections = sections.map { it.copy(items = it.items.filterBlockedArtists()) })
+
     data class Chip(
         val title: String,
         val endpoint: BrowseEndpoint?,

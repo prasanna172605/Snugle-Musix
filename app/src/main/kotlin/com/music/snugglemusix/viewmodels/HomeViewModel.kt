@@ -299,12 +299,26 @@ class HomeViewModel @Inject constructor(
                     val endpoint = YouTube.next(WatchEndpoint(videoId = recentSong.id)).getOrNull()?.relatedEndpoint
                     if (endpoint != null) {
                         YouTube.related(endpoint).onSuccess { page ->
-                            
-                            page.songs.take(10).forEach { ytSong ->
-                                database.song(ytSong.id).first()?.let { localSong ->
+                            page.songs.take(15).forEach { ytSong ->
+                                val localSong = database.song(ytSong.id).first()
+                                if (localSong != null) {
                                     if (!hideVideoSongs || !localSong.song.isVideo) {
                                         ytSimilarSongs.add(localSong)
                                     }
+                                } else {
+                                    val newSong = Song(
+                                        song = com.snuggle.music.db.entities.SongEntity(
+                                            id = ytSong.id,
+                                            title = ytSong.title,
+                                            duration = ytSong.duration ?: -1,
+                                            thumbnailUrl = ytSong.thumbnail,
+                                            albumId = ytSong.album?.id,
+                                            albumName = ytSong.album?.name
+                                        ),
+                                        artists = ytSong.artists.map { com.snuggle.music.db.entities.ArtistEntity(id = it.id ?: "", name = it.name) },
+                                        album = ytSong.album?.let { com.snuggle.music.db.entities.AlbumEntity(id = it.id ?: "", title = it.name ?: "", songCount = 0, duration = 0) }
+                                    )
+                                    ytSimilarSongs.add(newSong)
                                 }
                             }
                         }
@@ -312,9 +326,8 @@ class HomeViewModel @Inject constructor(
                 }
 
                 
-                val combined = (relatedSongs + forgotten + ytSimilarSongs)
+                val combined = (ytSimilarSongs + relatedSongs + forgotten)
                     .distinctBy { it.id }
-                    .shuffled()
                     .take(20)
 
                 if (combined.isNotEmpty()) {
@@ -454,32 +467,7 @@ class HomeViewModel @Inject constructor(
                 }
             }
 
-            val saavnJob = launch(Dispatchers.IO) {
-                try {
-                    providerRegistry.jioSaavnProvider.getCharts(targetLanguages).onSuccess { charts ->
-                        val rankedCharts = recommendationScorer.rankAndDiversify(
-                            items = charts,
-                            region = region,
-                            tasteProfile = tasteProfile
-                        ).take(3)
-
-                        rankedCharts.forEach { chart ->
-                            providerRegistry.jioSaavnProvider.getPlaylist(chart.id).onSuccess { (saavnPlaylist, saavnSongs) ->
-                                if (saavnSongs.isNotEmpty()) {
-                                    val rankedSongs = recommendationScorer.rankAndDiversify(
-                                        items = saavnSongs,
-                                        region = region,
-                                        tasteProfile = tasteProfile
-                                    ).take(10)
-                                    playlists.add(CommunityPlaylistItem(saavnPlaylist, rankedSongs))
-                                }
-                            }
-                        }
-                    }
-                } catch (_: Throwable) {}
-            }
-
-            (ytJobs + saavnJob).forEach { it.join() }
+            ytJobs.forEach { it.join() }
         }
 
         communityPlaylists.value = playlists.shuffled()

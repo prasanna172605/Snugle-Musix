@@ -574,7 +574,8 @@ highlightKey: String? = null) {
                     PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
                     PlayerBackgroundStyle.GLOW_ANIMATED -> stringResource(R.string.glow_animated)
                     PlayerBackgroundStyle.APPLE_MUSIC -> stringResource(R.string.apple_music)
-                    PlayerBackgroundStyle.LIVE_MESH -> stringResource(R.string.live_mesh)
+                    PlayerBackgroundStyle.LIQUID_GLASS -> "Liquid Glass"
+                      PlayerBackgroundStyle.LIVE_MESH -> stringResource(R.string.live_mesh)
                 }
             }
         )
@@ -596,7 +597,8 @@ highlightKey: String? = null) {
                     PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.gradient)
                     PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
                     PlayerBackgroundStyle.GLOW_ANIMATED -> stringResource(R.string.glow_animated)
-                    PlayerBackgroundStyle.LIVE_MESH -> stringResource(R.string.live_mesh)
+                    PlayerBackgroundStyle.LIQUID_GLASS -> "Liquid Glass"
+                      PlayerBackgroundStyle.LIVE_MESH -> stringResource(R.string.live_mesh)
                     else -> "Unknown"
                 }
             }
@@ -996,6 +998,14 @@ highlightKey: String? = null) {
                 )
                 add(
                     Material3SettingsItem(
+                        icon = painterResource(R.drawable.water_drop),
+                        title = { Text(stringResource(R.string.liquid_glass)) },
+                        description = { Text(stringResource(R.string.liquid_glass_settings)) },
+                        onClick = { navController.navigate("settings/appearance/liquidglass") }
+                    )
+                )
+                add(
+                    Material3SettingsItem(
                         icon = painterResource(if (enableLegacyIcon) R.drawable.ic_legacy_nobg else R.drawable.ic_launcher_nobg),
                         title = { Text("Legacy Icon") },
                         description = { Text("Use previous bird holding music symbol logo all over the app, notifications, and widgets") },
@@ -1094,18 +1104,6 @@ highlightKey: String? = null) {
                         )
                     },
                     onClick = { onUseClassicNavigationBarChange(!useClassicNavigationBar) }
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.palette),
-                    title = { Text("Liquid Glass UI") },
-                    description = { Text("Enable Apple Liquid Glass style floating navbar and miniplayer") },
-                    trailingContent = {
-                        Switch(
-                            checked = useLiquidGlassUi,
-                            onCheckedChange = { onUseLiquidGlassUiChange(it) }
-                        )
-                    },
-                    onClick = { onUseLiquidGlassUiChange(!useLiquidGlassUi) }
                 )
             )
         )
@@ -1153,7 +1151,8 @@ highlightKey: String? = null) {
                                     PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.gradient)
                                     PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
                                     PlayerBackgroundStyle.GLOW_ANIMATED -> stringResource(R.string.glow_animated)
-                                    PlayerBackgroundStyle.LIVE_MESH -> stringResource(R.string.live_mesh)
+                                    PlayerBackgroundStyle.LIQUID_GLASS -> "Liquid Glass"
+                      PlayerBackgroundStyle.LIVE_MESH -> stringResource(R.string.live_mesh)
                                     else -> stringResource(R.string.follow_theme)
                                 }
                             )
@@ -1243,7 +1242,8 @@ highlightKey: String? = null) {
                                 PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
                                 PlayerBackgroundStyle.GLOW_ANIMATED -> stringResource(R.string.glow_animated)
                                 PlayerBackgroundStyle.APPLE_MUSIC -> stringResource(R.string.apple_music)
-                                PlayerBackgroundStyle.LIVE_MESH -> stringResource(R.string.live_mesh)
+                                PlayerBackgroundStyle.LIQUID_GLASS -> "Liquid Glass"
+                      PlayerBackgroundStyle.LIVE_MESH -> stringResource(R.string.live_mesh)
                             }
                         )
                     },

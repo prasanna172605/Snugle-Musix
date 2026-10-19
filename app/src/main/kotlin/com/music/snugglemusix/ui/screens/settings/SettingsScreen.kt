@@ -1,4 +1,4 @@
-﻿
+
 
 package com.snuggle.music.ui.screens.settings
 
@@ -175,10 +175,21 @@ highlightKey: String? = null) {
             if (contentText.lowercase().contains(searchLower)) {
                 add(
                     Material3SettingsItem(
-    isHighlighted = (highlightKey == contentText),
+                        isHighlighted = (highlightKey == contentText),
                         icon = painterResource(R.drawable.language),
                         title = { Text(contentText) },
                         onClick = { navController.navigate("settings/content") }
+                    )
+                )
+            }
+            if ("listening summary".contains(searchLower) || "activity history".contains(searchLower) || stringResource(R.string.activity_history).lowercase().contains(searchLower)) {
+                add(
+                    Material3SettingsItem(
+                        isHighlighted = (highlightKey == "Listening Summary" || highlightKey == stringResource(R.string.activity_history)),
+                        icon = painterResource(R.drawable.history),
+                        title = { Text(stringResource(R.string.activity_history)) },
+                        description = { Text("Insights into your music tastes, top songs, and listening habits") },
+                        onClick = { navController.navigate("settings/listening_summary") }
                     )
                 )
             }

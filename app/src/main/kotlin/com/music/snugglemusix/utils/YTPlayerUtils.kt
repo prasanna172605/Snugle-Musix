@@ -33,6 +33,9 @@ object YTPlayerUtils {
     @Volatile
     var playbackEngine: PlaybackEngine = PlaybackEngine.AUTO
 
+    @Volatile
+    var forceOpusEnabled: Boolean = true
+
     private val httpClient = OkHttpClient.Builder()
         .proxy(YouTube.proxy)
         .connectTimeout(20, TimeUnit.SECONDS)
@@ -569,40 +572,25 @@ object YTPlayerUtils {
 
         if (audioFormats.isEmpty()) return null
 
-        val is320KbpsRequested = audioQuality == AudioQuality.SAAVN || audioQuality == AudioQuality.LOSSLESS || audioQuality == AudioQuality.MP4_LATM
-
-        return if (is320KbpsRequested) {
-            // Strictly prioritize mp4-latm / mp4a (320kbps / highest bitrate)
-            val mp4Format = audioFormats
-                .filter { it.mimeType.startsWith("audio/mp4") || it.mimeType.contains("mp4a") }
-                .maxByOrNull { it.bitrate }
-
-            if (mp4Format != null) {
-                mp4Format
-            } else {
-                // If 320kbps mp4 is not available, indicate fallback to Opus and play on Opus
-                Timber.tag(logTag).w("320kbps unavailable, falling back to Opus")
-                try {
-                    android.os.Handler(android.os.Looper.getMainLooper()).post {
-                        try {
-                            val app = com.snuggle.music.App.instance
-                            android.widget.Toast.makeText(app, "320kbps unavailable, falling back to Opus", android.widget.Toast.LENGTH_SHORT).show()
-                        } catch (_: Throwable) {}
-                    }
-                } catch (_: Throwable) {}
-
-                audioFormats
-                    .filter { it.mimeType.startsWith("audio/webm") }
-                    .maxByOrNull { it.bitrate }
-                    ?: audioFormats.maxByOrNull { it.bitrate }
+        var candidateFormats = audioFormats
+        if (forceOpusEnabled) {
+            val opusFormats = candidateFormats.filter { it.mimeType.contains("audio/webm") }
+            if (opusFormats.isNotEmpty()) {
+                candidateFormats = opusFormats
+                Timber.tag(logTag).d("Forcing Opus: Filtered down to ${opusFormats.size} webm formats")
             }
-        } else {
-            // Opus preference
-            audioFormats
-                .filter { it.mimeType.startsWith("audio/webm") }
-                .maxByOrNull { it.bitrate }
-                ?: audioFormats.maxByOrNull { it.bitrate }
         }
+
+        // Prioritize itag 251 (Opus 160kbps), then highest bitrate webm/audio
+        val itag251Format = candidateFormats.find { it.itag == 251 }
+        if (itag251Format != null) {
+            return itag251Format
+        }
+
+        return candidateFormats
+            .filter { it.mimeType.startsWith("audio/webm") }
+            .maxByOrNull { it.bitrate }
+            ?: candidateFormats.maxByOrNull { it.bitrate }
     }
 
     data class ValidationResult(

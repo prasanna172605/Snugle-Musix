@@ -324,6 +324,14 @@ fun NavGraphBuilder.navigationBuilder(
         YouTubeBrowseScreen(navController)
     }
 
+    
+    composable("settings/listening_summary") {
+        com.music.snugglemusix.ui.screens.ListeningSummaryScreen(navController)
+    }
+    composable("settings/content/blocked_artists") {
+        com.snuggle.music.ui.screens.settings.BlockedArtistsScreen(navController)
+    }
+
     composable("settings") {
         SettingsScreen(navController, scrollBehavior)
     }
@@ -352,6 +360,10 @@ fun NavGraphBuilder.navigationBuilder(
 
     composable("settings/appearance/theme") {
         ThemeScreen(navController)
+    }
+
+    composable("settings/appearance/liquidglass") {
+        com.snuggle.music.ui.screens.settings.GlassEffectSettings(navController, scrollBehavior)
     }
 
     composable(

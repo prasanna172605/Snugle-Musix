@@ -33,8 +33,8 @@ android {
         applicationId = "com.snuggle.music"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2002
-        versionName = "1.0.2"
+        versionCode = 2003
+        versionName = "1.0.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -228,9 +228,7 @@ dependencies {
 
     
     implementation(libs.haze)
-    implementation(libs.liquid.glass)
-    implementation(libs.liquid.glass.shape)
-    implementation(libs.guava)
+            implementation(libs.guava)
     implementation(libs.coroutines.guava)
     implementation(libs.concurrent.futures)
 
@@ -272,6 +270,8 @@ dependencies {
     implementation(libs.media3.hls)
     implementation(libs.media3.ui)
     implementation(libs.media3.okhttp)
+    implementation(libs.media3.cronet)
+    implementation(libs.play.services.cronet)
 
     // Google Cast - only included in GMS flavor (not available in F-Droid/FOSS builds)
     "gmsImplementation"(libs.media3.cast)

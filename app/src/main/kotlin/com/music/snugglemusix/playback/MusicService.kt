@@ -49,6 +49,8 @@ import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR
 import androidx.media3.datasource.cache.SimpleCache
+import androidx.media3.datasource.cronet.CronetDataSource
+import org.chromium.net.CronetEngine
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
@@ -92,6 +94,8 @@ import com.snuggle.music.constants.DiscordActivityTypeKey
 import com.snuggle.music.constants.DiscordTokenKey
 import com.snuggle.music.constants.EnableDiscordRPCKey
 import com.snuggle.music.constants.EnableLastFMScrobblingKey
+import com.snuggle.music.constants.EnableCronetKey
+import com.snuggle.music.constants.ForceOpusKey
 import com.snuggle.music.constants.HideExplicitKey
 import com.snuggle.music.constants.HideVideoSongsKey
 import com.snuggle.music.constants.HistoryDuration
@@ -159,6 +163,8 @@ import com.snuggle.music.playback.queues.Queue
 import com.snuggle.music.playback.queues.YouTubeQueue
 import com.snuggle.music.playback.queues.filterExplicit
 import com.snuggle.music.playback.queues.filterVideoSongs
+import com.music.innertube.models.filterExplicit
+import com.music.innertube.models.filterVideoSongs
 import com.snuggle.music.utils.CoilBitmapLoader
 import com.snuggle.music.ui.screens.settings.DiscordPresenceManager
 import com.snuggle.music.utils.NetworkConnectivityObserver
@@ -647,6 +653,17 @@ class MusicService :
                     }
                 }
         }
+
+        dataStore.data
+            .map {
+                (try {
+                    it[ForceOpusKey]
+                } catch (e: Exception) {
+                    null
+                }) ?: true
+            }
+            .distinctUntilChanged()
+            .collect(scope) { com.snuggle.music.utils.YTPlayerUtils.forceOpusEnabled = it }
 
         combine(playerVolume, isMuted) { volume, muted ->
             if (muted) 0f else volume
@@ -1295,7 +1312,8 @@ class MusicService :
                         providerRegistry.recommendationScorer.rankAndDiversify(
                             items = rawSongs,
                             region = region,
-                            tasteProfile = taste
+                            tasteProfile = taste,
+                            seedItem = queue.initialSong.toMediaMetadata()
                         )
                     } else rawSongs
 
@@ -1334,7 +1352,8 @@ class MusicService :
                         providerRegistry.recommendationScorer.rankAndDiversify(
                             items = rawSongs,
                             region = region,
-                            tasteProfile = taste
+                            tasteProfile = taste,
+                            seedItem = currentMediaMetadata
                         )
                     } else rawSongs
 
@@ -1377,9 +1396,16 @@ class MusicService :
                 }
 
                 
-                val radioItems = initialStatus.items.filter { item ->
+                val unrankedRadioItems = initialStatus.items.filter { item ->
                     item.mediaId != currentMediaId
                 }
+
+                val region = providerRegistry.regionalPreferenceManager.getActiveRegion()
+                val taste = providerRegistry.tasteProfileEngine.computeTasteProfile()
+
+                val radioItems = if (unrankedRadioItems.isNotEmpty()) {
+                    unrankedRadioItems
+                } else emptyList()
 
                 if (radioItems.isNotEmpty()) {
                     val itemCount = player.mediaItemCount
@@ -1407,11 +1433,19 @@ class MusicService :
                             YouTube.related(relatedEndpoint).getOrNull()
                         }
                         relatedPage?.songs?.let { songs ->
-                            val radioItems = songs
+                            val region = providerRegistry.regionalPreferenceManager.getActiveRegion()
+                            val taste = providerRegistry.tasteProfileEngine.computeTasteProfile()
+                            val unrankedSongs = songs
                                 .filter { it.id != currentMediaId }
-                                .map { it.toMediaItem() }
                                 .filterExplicit(dataStore.get(HideExplicitKey, false))
                                 .filterVideoSongs(dataStore.get(HideVideoSongsKey, false))
+                            val rankedSongs = providerRegistry.recommendationScorer.rankAndDiversify(
+                                items = unrankedSongs,
+                                region = region,
+                                tasteProfile = taste,
+                                seedItem = currentMediaMetadata
+                            )
+                            val radioItems = rankedSongs.map { it.toMediaItem() }
 
                             if (radioItems.isNotEmpty()) {
                                 val itemCount = player.mediaItemCount
@@ -1448,31 +1482,51 @@ class MusicService :
             !(dataStore.get(DisableLoadMoreWhenRepeatAllKey, false) && player.repeatMode == REPEAT_MODE_ALL)) {
             scope.launch(SilentHandler) {
                 try {
-                    
+                    val region = providerRegistry.regionalPreferenceManager.getActiveRegion()
+                    val taste = providerRegistry.tasteProfileEngine.computeTasteProfile()
+                    val currentSong = player.currentMetadata
+
                     YouTube.next(WatchEndpoint(playlistId = playlistId))
                         .onSuccess { firstResult ->
                             YouTube.next(WatchEndpoint(playlistId = firstResult.endpoint.playlistId))
                                 .onSuccess { secondResult ->
-                                    automixItems.value = secondResult.items.map { song ->
+                                    val ranked = providerRegistry.recommendationScorer.rankAndDiversify(
+                                        items = secondResult.items,
+                                        region = region,
+                                        tasteProfile = taste,
+                                        seedItem = currentSong
+                                    )
+                                    automixItems.value = ranked.map { song ->
                                         song.toMediaItem()
                                     }
                                 }
                                 .onFailure {
                                     
                                     if (firstResult.items.isNotEmpty()) {
-                                        automixItems.value = firstResult.items.map { song ->
+                                        val ranked = providerRegistry.recommendationScorer.rankAndDiversify(
+                                            items = firstResult.items,
+                                            region = region,
+                                            tasteProfile = taste,
+                                            seedItem = currentSong
+                                        )
+                                        automixItems.value = ranked.map { song ->
                                             song.toMediaItem()
                                         }
                                     }
                                 }
                         }
                         .onFailure {
-                            val currentSong = player.currentMetadata
                             if (currentSong != null) {
                                 if (com.snuggle.music.providers.JioSaavnProvider.isJioSaavnId(currentSong.id)) {
                                     val recoSongs = providerRegistry.jioSaavnProvider.getRecommendations(currentSong.id).getOrNull().orEmpty()
-                                    val filteredItems = recoSongs
-                                        .filter { it.id != currentSong.id }
+                                    val unranked = recoSongs.filter { it.id != currentSong.id }
+                                    val ranked = providerRegistry.recommendationScorer.rankAndDiversify(
+                                        items = unranked,
+                                        region = region,
+                                        tasteProfile = taste,
+                                        seedItem = currentSong
+                                    )
+                                    val filteredItems = ranked
                                         .map { it.toMediaMetadata().toMediaItem() }
                                     if (filteredItems.isNotEmpty()) {
                                         automixItems.value = filteredItems
@@ -1481,18 +1535,28 @@ class MusicService :
                                     YouTube.next(WatchEndpoint(
                                         videoId = currentSong.id
                                     )).onSuccess { radioResult ->
-                                        val filteredItems = radioResult.items
-                                            .filter { it.id != currentSong.id }
-                                            .map { it.toMediaItem() }
+                                        val unranked = radioResult.items.filter { it.id != currentSong.id }
+                                        val ranked = providerRegistry.recommendationScorer.rankAndDiversify(
+                                            items = unranked,
+                                            region = region,
+                                            tasteProfile = taste,
+                                            seedItem = currentSong
+                                        )
+                                        val filteredItems = ranked.map { it.toMediaItem() }
                                         if (filteredItems.isNotEmpty()) {
                                             automixItems.value = filteredItems
                                         }
                                     }.onFailure {
                                         YouTube.next(WatchEndpoint(videoId = currentSong.id)).getOrNull()?.relatedEndpoint?.let { relatedEndpoint ->
                                             YouTube.related(relatedEndpoint).onSuccess { relatedPage ->
-                                                val relatedItems = relatedPage.songs
-                                                    .filter { it.id != currentSong.id }
-                                                    .map { it.toMediaItem() }
+                                                val unranked = relatedPage.songs.filter { it.id != currentSong.id }
+                                                val ranked = providerRegistry.recommendationScorer.rankAndDiversify(
+                                                    items = unranked,
+                                                    region = region,
+                                                    tasteProfile = taste,
+                                                    seedItem = currentSong
+                                                )
+                                                val relatedItems = ranked.map { it.toMediaItem() }
                                                 if (relatedItems.isNotEmpty()) {
                                                     automixItems.value = relatedItems
                                                 }
@@ -2615,58 +2679,81 @@ class MusicService :
         }
     }
 
-    private fun createCacheDataSource(): CacheDataSource.Factory =
-        CacheDataSource
-            .Factory()
+    private fun createCacheDataSource(): CacheDataSource.Factory {
+        val useCronet = dataStore.get(EnableCronetKey, true)
+        val upstreamFactory: DataSource.Factory =
+            if (useCronet) {
+                try {
+                    Timber.tag(TAG).d("Initializing CronetEngine for HTTP/3 QUIC streaming")
+                    val cronetEngine =
+                        CronetEngine.Builder(this)
+                            .enableQuic(true)
+                            .enableHttp2(true)
+                            .enableBrotli(true)
+                            .build()
+                    CronetDataSource.Factory(
+                        cronetEngine,
+                        java.util.concurrent.Executors.newSingleThreadExecutor()
+                    )
+                } catch (e: Exception) {
+                    Timber.tag(TAG).e(e, "Failed to initialize Cronet, falling back to OkHttp")
+                    createOkHttpDataSourceFactory()
+                }
+            } else {
+                createOkHttpDataSourceFactory()
+            }
+
+        return CacheDataSource.Factory()
             .setCache(downloadCache)
             .setUpstreamDataSourceFactory(
-                CacheDataSource
-                    .Factory()
+                CacheDataSource.Factory()
                     .setCache(playerCache)
-                    .setUpstreamDataSourceFactory(
-                        OkHttpDataSource.Factory(
-                            OkHttpClient
-                                    .Builder()
-                                    .addInterceptor { chain ->
-                                        val req = chain.request()
-                                        val url = req.url.toString()
-                                        val range = req.header("Range") ?: "none"
-                                        val ua = req.header("User-Agent") ?: "none"
-                                        val itag = req.url.queryParameter("itag") ?: "unknown"
-                                        val cpn = req.url.queryParameter("cpn") ?: "none"
-                                        
-                                        timber.log.Timber.tag("Media3HTTP").i("[HTTP REQ] itag=$itag, range=$range, UA=$ua, cpn=$cpn, host=${req.url.host}")
-                                        
-                                        val response = chain.proceed(req)
-                                        timber.log.Timber.tag("Media3HTTP").i("[HTTP RES] code=${response.code}, itag=$itag, range=$range, len=${response.header("Content-Length")}")
-                                        if (response.code == 403) {
-                                            timber.log.Timber.tag("Media3HTTP").e("[HTTP 403 FORBIDDEN] itag=$itag, range=$range, UA=$ua, host=${req.url.host}")
-                                        }
-                                        response
-                                    }
-                                    .dns(object : Dns {
-                                        override fun lookup(hostname: String): List<InetAddress> {
-                                            val addresses = Dns.SYSTEM.lookup(hostname)
-                                            return when (this@MusicService.ipVersion) {
-                                                IpVersion.IPV4 -> addresses.filter { it is Inet4Address }.ifEmpty { addresses }
-                                                IpVersion.IPV6 -> addresses.filter { it is Inet6Address }.ifEmpty { addresses }
-                                                IpVersion.AUTO -> addresses
-                                            }
-                                        }
-                                    })
-                                    .proxy(YouTube.proxy)
-                                    .proxyAuthenticator { _, response ->
-                                        YouTube.proxyAuth?.let { auth ->
-                                            response.request.newBuilder()
-                                                .header("Proxy-Authorization", auth)
-                                                .build()
-                                        } ?: response.request
-                                    }
-                                    .build()
-                            )
-                    )
-            ).setCacheWriteDataSinkFactory(null)
+                    .setUpstreamDataSourceFactory(upstreamFactory)
+            )
+            .setCacheWriteDataSinkFactory(null)
             .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
+    }
+
+    private fun createOkHttpDataSourceFactory(): DataSource.Factory =
+        OkHttpDataSource.Factory(
+            OkHttpClient.Builder()
+                .addInterceptor { chain ->
+                    val req = chain.request()
+                    val url = req.url.toString()
+                    val range = req.header("Range") ?: "none"
+                    val ua = req.header("User-Agent") ?: "none"
+                    val itag = req.url.queryParameter("itag") ?: "unknown"
+                    val cpn = req.url.queryParameter("cpn") ?: "none"
+
+                    timber.log.Timber.tag("Media3HTTP").i("[HTTP REQ] itag=$itag, range=$range, UA=$ua, cpn=$cpn, host=${req.url.host}")
+
+                    val response = chain.proceed(req)
+                    timber.log.Timber.tag("Media3HTTP").i("[HTTP RES] code=${response.code}, itag=$itag, range=$range, len=${response.header("Content-Length")}")
+                    if (response.code == 403) {
+                        timber.log.Timber.tag("Media3HTTP").e("[HTTP 403 FORBIDDEN] itag=$itag, range=$range, UA=$ua, host=${req.url.host}")
+                    }
+                    response
+                }
+                .dns(object : Dns {
+                    override fun lookup(hostname: String): List<InetAddress> {
+                        val addresses = Dns.SYSTEM.lookup(hostname)
+                        return when (this@MusicService.ipVersion) {
+                            IpVersion.IPV4 -> addresses.filter { it is Inet4Address }.ifEmpty { addresses }
+                            IpVersion.IPV6 -> addresses.filter { it is Inet6Address }.ifEmpty { addresses }
+                            IpVersion.AUTO -> addresses
+                        }
+                    }
+                })
+                .proxy(YouTube.proxy)
+                .proxyAuthenticator { _, response ->
+                    YouTube.proxyAuth?.let { auth ->
+                        response.request.newBuilder()
+                            .header("Proxy-Authorization", auth)
+                            .build()
+                    } ?: response.request
+                }
+                .build()
+        )
 
     
     private var isSilenceSkipping = false

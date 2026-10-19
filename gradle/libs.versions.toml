@@ -51,8 +51,6 @@ playServicesAuth = "22.0.0"
 googleApiClient = "2.9.0"
 googleDriveApi = "v3-rev20260428-2.0.0"
 browser = "1.8.0"
-liquid-glass = "1.0.6"
-liquid-glass-shapes = "1.2.0"
 ksoup = "0.6.0"
 
 [libraries]
@@ -64,8 +62,6 @@ kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime",
 ksoup-html = { group = "com.mohamedrejeb.ksoup", name = "ksoup-html", version.ref = "ksoup" }
 ksoup-entities = { group = "com.mohamedrejeb.ksoup", name = "ksoup-entities", version.ref = "ksoup" }
 
-liquid-glass = { module = "io.github.kyant0:backdrop", version.ref = "liquid-glass" }
-liquid-glass-shape = { module = "io.github.kyant0:shapes", version.ref = "liquid-glass-shapes" }
 
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 retrofit-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "retrofit" }
@@ -114,6 +110,8 @@ media3 = { module = "androidx.media3:media3-exoplayer", version.ref = "media3" }
 media3-okhttp = { module = "androidx.media3:media3-datasource-okhttp", version.ref = "media3" }
 media3-session = { module = "androidx.media3:media3-session", version.ref = "media3" }
 media3-hls = { module = "androidx.media3:media3-exoplayer-hls", version.ref = "media3" }
+media3-cronet = { module = "androidx.media3:media3-datasource-cronet", version.ref = "media3" }
+play-services-cronet = { module = "com.google.android.gms:play-services-cronet", version = "18.0.1" }
 media3-cast = { module = "androidx.media3:media3-cast", version.ref = "media3" }
 media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3" }
 

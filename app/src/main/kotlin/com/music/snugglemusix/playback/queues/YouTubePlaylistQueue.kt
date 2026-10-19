@@ -31,13 +31,26 @@ class YouTubePlaylistQueue(
                     mediaItemIndex = startIndex,
                 )
             } else {
-                val playlistPage = YouTube.playlist(playlistId).getOrThrow()
-                continuation = playlistPage.songsContinuation
-                Queue.Status(
-                    title = playlistPage.playlist.title,
-                    items = playlistPage.songs.map { it.toMediaItem() },
-                    mediaItemIndex = startIndex,
-                )
+                val playlistPageResult = YouTube.playlist(playlistId)
+                if (playlistPageResult.isSuccess) {
+                    val playlistPage = playlistPageResult.getOrThrow()
+                    continuation = playlistPage.songsContinuation
+                    Queue.Status(
+                        title = playlistPage.playlist.title,
+                        items = playlistPage.songs.map { it.toMediaItem() },
+                        mediaItemIndex = startIndex,
+                    )
+                } else {
+                    // Fallback for featured or radio-only playlist IDs
+                    val cleanId = playlistId.removePrefix("VL")
+                    val nextResult = YouTube.next(com.music.innertube.models.WatchEndpoint(playlistId = cleanId)).getOrThrow()
+                    continuation = nextResult.continuation
+                    Queue.Status(
+                        title = nextResult.title ?: playlistTitle,
+                        items = nextResult.items.map { it.toMediaItem() },
+                        mediaItemIndex = nextResult.currentIndex ?: startIndex,
+                    )
+                }
             }
         }
     }

@@ -6,8 +6,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.ui.unit.dp
-import com.snuggle.music.ui.component.LocalPlatformBackdrop
+import com.snuggle.music.ui.component.LocalAppBackdrop
+import com.snuggle.music.ui.component.LocalGlassEffectConfig
 import com.snuggle.music.ui.component.liquidGlass as opticalLiquidGlass
 
 /**
@@ -16,16 +18,17 @@ import com.snuggle.music.ui.component.liquidGlass as opticalLiquidGlass
  */
 @Composable
 fun Modifier.liquidGlass(
-    shape: Shape,
+    shape: CornerBasedShape,
     borderAlpha: Float = 0.22f,
     scrimAlpha: Float = 0.4f
 ): Modifier {
-    val backdrop = LocalPlatformBackdrop.current
+    val backdrop = LocalAppBackdrop.current
     return if (backdrop != null) {
+        val config = LocalGlassEffectConfig.current
         this.opticalLiquidGlass(
-            backdrop = backdrop,
+            config = config,
             shape = shape,
-            interactive = false
+            applyEdgeEffects = false
         )
     } else {
         this

@@ -178,6 +178,7 @@ fun ArtistScreen(
     val showMonthlyListeners by rememberPreference(key = ShowMonthlyListenersKey, defaultValue = true)
     val showArtistVideo by rememberPreference(key = ShowArtistVideoKey, defaultValue = true)
     val showArtistBackgroundVideo by rememberPreference(key = ShowArtistBackgroundVideoKey, defaultValue = true)
+    val isBlocked by viewModel.isBlocked.collectAsState()
 
     val lazyListState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -505,15 +506,13 @@ fun ArtistScreen(
                                 }
 
                                 
-                                Row(
+                                Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(top = 8.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(
-                                        ButtonGroupDefaults.ConnectedSpaceBetween
-                                    )
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    
+                                    // Row 1: Subscribe button as a separate button
                                     ToggleButton(
                                         checked = libraryArtist?.artist?.bookmarkedAt != null,
                                         onCheckedChange = {
@@ -536,10 +535,10 @@ fun ArtistScreen(
                                             }
                                         },
                                         modifier = Modifier
-                                            .weight(1f)
-                                            .height(52.dp)
+                                            .fillMaxWidth()
+                                            .height(50.dp)
                                             .semantics { role = Role.Button },
-                                        shapes = ButtonGroupDefaults.connectedLeadingButtonShapes()
+                                        shapes = ToggleButtonDefaults.shapes()
                                     ) {
                                         Icon(
                                             painter = painterResource(
@@ -566,59 +565,127 @@ fun ArtistScreen(
                                                     R.string.subscribe
                                                 }
                                             ),
-                                            style = MaterialTheme.typography.labelMedium,
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.SemiBold,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
                                     }
 
-                                    
+                                    // Row 2: Remaining buttons (Radio, Shuffle, Block)
                                     if (!showLocal && !isGuest) {
-                                        artistPage?.artist?.radioEndpoint?.let { radioEndpoint ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(
+                                                ButtonGroupDefaults.ConnectedSpaceBetween
+                                            )
+                                        ) {
+                                            artistPage?.artist?.radioEndpoint?.let { radioEndpoint ->
+                                                ToggleButton(
+                                                    checked = false,
+                                                    onCheckedChange = {
+                                                        playerConnection.playQueue(YouTubeQueue(radioEndpoint))
+                                                    },
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .height(48.dp)
+                                                        .semantics { role = Role.Button },
+                                                    shapes = ButtonGroupDefaults.connectedLeadingButtonShapes()
+                                                ) {
+                                                    Icon(
+                                                        painter = painterResource(R.drawable.radio),
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                    Spacer(Modifier.size(ToggleButtonDefaults.IconSpacing))
+                                                    Text(
+                                                        text = stringResource(R.string.radio),
+                                                        style = MaterialTheme.typography.labelMedium,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                }
+                                            }
+
+                                            artistPage?.artist?.shuffleEndpoint?.let { shuffleEndpoint ->
+                                                ToggleButton(
+                                                    checked = false,
+                                                    onCheckedChange = {
+                                                        playerConnection.playQueue(YouTubeQueue(shuffleEndpoint))
+                                                    },
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .height(48.dp)
+                                                        .semantics { role = Role.Button },
+                                                    shapes = if (artistPage?.artist?.radioEndpoint != null) {
+                                                        ButtonGroupDefaults.connectedMiddleButtonShapes()
+                                                    } else {
+                                                        ButtonGroupDefaults.connectedLeadingButtonShapes()
+                                                    }
+                                                ) {
+                                                    Icon(
+                                                        painter = painterResource(R.drawable.shuffle),
+                                                        contentDescription = stringResource(R.string.shuffle),
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                    Spacer(Modifier.size(ToggleButtonDefaults.IconSpacing))
+                                                    Text(
+                                                        text = stringResource(R.string.shuffle),
+                                                        style = MaterialTheme.typography.labelMedium,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                }
+                                            }
+
                                             ToggleButton(
-                                                checked = false,
-                                                onCheckedChange = {
-                                                    playerConnection.playQueue(YouTubeQueue(radioEndpoint))
-                                                },
+                                                checked = isBlocked,
+                                                onCheckedChange = { viewModel.toggleBlockArtist() },
                                                 modifier = Modifier
                                                     .weight(1f)
-                                                    .height(52.dp)
+                                                    .height(48.dp)
                                                     .semantics { role = Role.Button },
-                                                shapes = ButtonGroupDefaults.connectedMiddleButtonShapes()
+                                                shapes = ButtonGroupDefaults.connectedTrailingButtonShapes()
                                             ) {
                                                 Icon(
-                                                    painter = painterResource(R.drawable.radio),
-                                                    contentDescription = null,
+                                                    painter = painterResource(R.drawable.remove),
+                                                    contentDescription = stringResource(if (isBlocked) R.string.unblock else R.string.block),
                                                     modifier = Modifier.size(20.dp)
                                                 )
                                                 Spacer(Modifier.size(ToggleButtonDefaults.IconSpacing))
                                                 Text(
-                                                    text = stringResource(R.string.radio),
+                                                    text = stringResource(if (isBlocked) R.string.unblock else R.string.block),
                                                     style = MaterialTheme.typography.labelMedium,
                                                     maxLines = 1,
                                                     overflow = TextOverflow.Ellipsis
                                                 )
                                             }
                                         }
-                                    }
-
-                                    
-                                    if (!showLocal && !isGuest) {
-                                        artistPage?.artist?.shuffleEndpoint?.let { shuffleEndpoint ->
+                                    } else if (librarySongs.isNotEmpty() && !isGuest) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(
+                                                ButtonGroupDefaults.ConnectedSpaceBetween
+                                            )
+                                        ) {
                                             ToggleButton(
                                                 checked = false,
                                                 onCheckedChange = {
-                                                    playerConnection.playQueue(YouTubeQueue(shuffleEndpoint))
+                                                    val shuffledSongs = librarySongs.shuffled()
+                                                    if (shuffledSongs.isNotEmpty()) {
+                                                        playerConnection.playQueue(
+                                                            ListQueue(
+                                                                title = libraryArtist?.artist?.name ?: "Unknown Artist",
+                                                                items = shuffledSongs.map { it.toMediaItem() }
+                                                            )
+                                                        )
+                                                    }
                                                 },
                                                 modifier = Modifier
                                                     .weight(1f)
-                                                    .height(52.dp)
+                                                    .height(48.dp)
                                                     .semantics { role = Role.Button },
-                                                shapes = if (artistPage?.artist?.radioEndpoint != null) {
-                                                    ButtonGroupDefaults.connectedTrailingButtonShapes()
-                                                } else {
-                                                    ButtonGroupDefaults.connectedTrailingButtonShapes()
-                                                }
+                                                shapes = ButtonGroupDefaults.connectedLeadingButtonShapes()
                                             ) {
                                                 Icon(
                                                     painter = painterResource(R.drawable.shuffle),
@@ -633,39 +700,29 @@ fun ArtistScreen(
                                                     overflow = TextOverflow.Ellipsis
                                                 )
                                             }
-                                        }
-                                    } else if (librarySongs.isNotEmpty() && !isGuest) {
-                                        ToggleButton(
-                                            checked = false,
-                                            onCheckedChange = {
-                                                val shuffledSongs = librarySongs.shuffled()
-                                                if (shuffledSongs.isNotEmpty()) {
-                                                    playerConnection.playQueue(
-                                                        ListQueue(
-                                                            title = libraryArtist?.artist?.name ?: "Unknown Artist",
-                                                            items = shuffledSongs.map { it.toMediaItem() }
-                                                        )
-                                                    )
-                                                }
-                                            },
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .height(52.dp)
-                                                .semantics { role = Role.Button },
-                                            shapes = ButtonGroupDefaults.connectedTrailingButtonShapes()
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(R.drawable.shuffle),
-                                                contentDescription = stringResource(R.string.shuffle),
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                            Spacer(Modifier.size(ToggleButtonDefaults.IconSpacing))
-                                            Text(
-                                                text = stringResource(R.string.shuffle),
-                                                style = MaterialTheme.typography.labelMedium,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
+
+                                            ToggleButton(
+                                                checked = isBlocked,
+                                                onCheckedChange = { viewModel.toggleBlockArtist() },
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .height(48.dp)
+                                                    .semantics { role = Role.Button },
+                                                shapes = ButtonGroupDefaults.connectedTrailingButtonShapes()
+                                            ) {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.remove),
+                                                    contentDescription = stringResource(if (isBlocked) R.string.unblock else R.string.block),
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                                Spacer(Modifier.size(ToggleButtonDefaults.IconSpacing))
+                                                Text(
+                                                    text = stringResource(if (isBlocked) R.string.unblock else R.string.block),
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
                                         }
                                     }
                                 }

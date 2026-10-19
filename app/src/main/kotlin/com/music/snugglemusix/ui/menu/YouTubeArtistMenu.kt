@@ -32,6 +32,7 @@ import com.snuggle.music.LocalDatabase
 import com.snuggle.music.LocalListenTogetherManager
 import com.snuggle.music.LocalPlayerConnection
 import com.snuggle.music.R
+import com.snuggle.music.constants.BlockedArtistsKey
 import com.snuggle.music.db.entities.SpeedDialItem
 import com.snuggle.music.db.entities.ArtistEntity
 import com.snuggle.music.playback.queues.YouTubeQueue
@@ -40,6 +41,9 @@ import com.snuggle.music.ui.component.Material3MenuItemData
 import com.snuggle.music.ui.component.NewAction
 import com.snuggle.music.ui.component.NewActionGrid
 import com.snuggle.music.ui.component.YouTubeListItem
+import com.snuggle.music.utils.dataStore
+import com.snuggle.music.utils.rememberPreference
+import androidx.datastore.preferences.core.edit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
@@ -59,6 +63,9 @@ fun YouTubeArtistMenu(
     val isGuest = listenTogetherManager?.isInRoom == true && !listenTogetherManager.isHost
     val isPinned by database.speedDialDao.isPinned(artist.id).collectAsState(initial = false)
     val coroutineScope = rememberCoroutineScope()
+    val (blockedArtists, _) = rememberPreference(key = BlockedArtistsKey, defaultValue = emptySet<String>())
+    val artistEntry = "${artist.id}||${artist.title}"
+    val isBlocked = blockedArtists.any { it.startsWith("${artist.id}||") }
 
     YouTubeListItem(
         item = artist,
@@ -153,9 +160,36 @@ fun YouTubeArtistMenu(
                             }
                         )
                     )
+
+                    add(
+                        NewAction(
+                            icon = {
+                                Icon(
+                                    painter = painterResource(if (isBlocked) R.drawable.close else R.drawable.remove),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = if (isBlocked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                                )
+                            },
+                            text = if (isBlocked) "Unblock" else "Block",
+                            onClick = {
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    context.dataStore.edit { prefs ->
+                                        val current = prefs[BlockedArtistsKey] ?: emptySet()
+                                        prefs[BlockedArtistsKey] = if (isBlocked) {
+                                            current.filter { !it.startsWith("${artist.id}||") }.toSet()
+                                        } else {
+                                            current + artistEntry
+                                        }
+                                    }
+                                }
+                                onDismiss()
+                            }
+                        )
+                    )
                 },
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp),
-                columns = if (isGuest) 1 else 3
+                columns = if (isGuest) 1 else 4
             )
         }
 

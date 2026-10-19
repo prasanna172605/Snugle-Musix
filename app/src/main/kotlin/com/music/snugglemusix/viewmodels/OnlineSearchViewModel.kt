@@ -27,6 +27,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import java.net.URLDecoder
+import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 
 @HiltViewModel
@@ -47,7 +48,7 @@ constructor(
     val viewStateMap = mutableStateMapOf<String, ItemsPage?>()
 
     init {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             filter.collect { filter ->
                 if (filter == null) {
                     if (summaryPage == null) {
@@ -57,13 +58,7 @@ constructor(
 
                         // Fetch YouTube summary
                         val ytSummary = YouTube.searchSummary(query).getOrNull()
-                        val saavnSongs = providerRegistry.jioSaavnProvider.search(query, com.snuggle.music.providers.ProviderSearchFilter.SONGS)
-                            .getOrNull()?.items.orEmpty()
-
                         val summariesList = mutableListOf<com.music.innertube.pages.SearchSummary>()
-                        if (saavnSongs.isNotEmpty()) {
-                            summariesList.add(com.music.innertube.pages.SearchSummary("JioSaavn", saavnSongs))
-                        }
                         if (ytSummary != null) {
                             summariesList.addAll(ytSummary.summaries)
                         }
@@ -76,14 +71,7 @@ constructor(
                         }
                     }
                 } else {
-                    if (filter.value == FILTER_JIOSAAVN.value) {
-                        if (viewStateMap[filter.value] == null) {
-                            val saavnResult = providerRegistry.jioSaavnProvider.search(query, com.snuggle.music.providers.ProviderSearchFilter.SONGS, page = 1)
-                                .getOrNull()
-                            val items = saavnResult?.items.orEmpty()
-                            viewStateMap[filter.value] = ItemsPage(items, saavnResult?.continuation)
-                        }
-                    } else if (viewStateMap[filter.value] == null) {
+                    if (viewStateMap[filter.value] == null) {
                         YouTube
                             .search(query, filter)
                             .onSuccess { result ->
@@ -115,26 +103,11 @@ constructor(
 
     fun loadMore() {
         val filterVal = filter.value?.value
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             if (filterVal == null) return@launch
             val viewState = viewStateMap[filterVal] ?: return@launch
             val continuation = viewState.continuation
             if (continuation != null) {
-                if (filterVal == FILTER_JIOSAAVN.value) {
-                    val nextPage = continuation.toIntOrNull() ?: 2
-                    val saavnResult = providerRegistry.jioSaavnProvider.search(
-                        query = query,
-                        filter = com.snuggle.music.providers.ProviderSearchFilter.SONGS,
-                        page = nextPage
-                    ).getOrNull()
-                    val newItems = saavnResult?.items.orEmpty()
-                    viewStateMap[filterVal] = ItemsPage(
-                        (viewState.items + newItems).distinctBy { it.id },
-                        saavnResult?.continuation
-                    )
-                    return@launch
-                }
-
                 val searchResult =
                     YouTube.searchContinuation(continuation).getOrNull() ?: return@launch
                 val hideExplicit = context.dataStore.get(HideExplicitKey, false)

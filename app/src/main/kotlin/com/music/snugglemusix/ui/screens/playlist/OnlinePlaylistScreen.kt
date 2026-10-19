@@ -308,15 +308,6 @@ fun OnlinePlaylistScreen(
                                         } else if (songItem.id == mediaMetadata?.id) {
                                             playerConnection.togglePlayPause()
                                         } else {
-                                            if (com.snuggle.music.providers.JioSaavnProvider.isJioSaavnId(playlist.id)) {
-                                                playerConnection.playQueue(
-                                                    com.snuggle.music.playback.queues.ListQueue(
-                                                        title = playlist.title,
-                                                        items = filteredSongs.map { it.second.toMediaMetadata().toMediaItem() },
-                                                        startIndex = index
-                                                    )
-                                                )
-                                            } else {
                                                 playerConnection.playQueue(
                                                     YouTubePlaylistQueue(
                                                         playlistId = playlist.id,
@@ -326,7 +317,6 @@ fun OnlinePlaylistScreen(
                                                         startIndex = index
                                                     )
                                                 )
-                                            }
                                         }
                                     },
                                     onLongClick = {
@@ -807,14 +797,6 @@ private fun OnlinePlaylistHeader(
                 Button(
                     onClick = {
                         if (songs.isNotEmpty()) {
-                            if (com.snuggle.music.providers.JioSaavnProvider.isJioSaavnId(playlist.id)) {
-                                playerConnection.playQueue(
-                                    com.snuggle.music.playback.queues.ListQueue(
-                                        title = playlist.title,
-                                        items = songs.map { it.toMediaMetadata().toMediaItem() }
-                                    )
-                                )
-                            } else {
                                 playerConnection.playQueue(
                                     YouTubePlaylistQueue(
                                         playlistId = playlist.id,
@@ -823,7 +805,6 @@ private fun OnlinePlaylistHeader(
                                         initialContinuation = continuation
                                     )
                                 )
-                            }
                         }
                     },
                     shape = ButtonDefaults.shape,
@@ -971,14 +952,6 @@ private fun OnlinePlaylistHeader(
                     checked = false,
                     onCheckedChange = {
                         if (songs.isNotEmpty()) {
-                            if (com.snuggle.music.providers.JioSaavnProvider.isJioSaavnId(playlist.id)) {
-                                playerConnection.playQueue(
-                                    com.snuggle.music.playback.queues.ListQueue(
-                                        title = playlist.title,
-                                        items = songs.shuffled().map { it.toMediaMetadata().toMediaItem() }
-                                    )
-                                )
-                            } else {
                                 playerConnection.playQueue(
                                     YouTubePlaylistQueue(
                                         playlistId = playlist.id,
@@ -987,7 +960,6 @@ private fun OnlinePlaylistHeader(
                                         initialContinuation = continuation
                                     )
                                 )
-                            }
                         }
                     },
                     modifier = Modifier.weight(1f).semantics { role = Role.Button },

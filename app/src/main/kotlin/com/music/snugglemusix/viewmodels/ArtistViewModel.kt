@@ -13,6 +13,7 @@ import com.music.innertube.YouTube
 import com.music.innertube.models.filterExplicit
 import com.music.innertube.models.filterVideoSongs
 import com.music.innertube.models.filterYoutubeShorts
+import androidx.datastore.preferences.core.edit
 import com.music.innertube.pages.ArtistPage
 import com.snuggle.music.constants.HideExplicitKey
 import com.snuggle.music.constants.HideVideoSongsKey
@@ -78,7 +79,7 @@ class ArtistViewModel @Inject constructor(
 
     init {
         
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             context.dataStore.data
                 .map {
                     Triple(
@@ -95,7 +96,7 @@ class ArtistViewModel @Inject constructor(
     }
 
     fun fetchArtistsFromYTM() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val hideExplicit = context.dataStore.get(HideExplicitKey, false)
             val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
             val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)
@@ -137,6 +138,23 @@ class ArtistViewModel @Inject constructor(
                 }.onFailure {
                     reportException(it)
                 }
+        }
+    }
+
+    val isBlocked = context.dataStore.data.map {
+        it[com.snuggle.music.constants.BlockedArtistsKey]?.contains(artistId) ?: false
+    }.stateIn(viewModelScope, SharingStarted.Lazily, false)
+
+    fun toggleBlockArtist() {
+        viewModelScope.launch(Dispatchers.IO) {
+            context.dataStore.edit { preferences ->
+                val current = preferences[com.snuggle.music.constants.BlockedArtistsKey] ?: emptySet()
+                if (current.contains(artistId)) {
+                    preferences[com.snuggle.music.constants.BlockedArtistsKey] = current - artistId
+                } else {
+                    preferences[com.snuggle.music.constants.BlockedArtistsKey] = current + artistId
+                }
+            }
         }
     }
 }

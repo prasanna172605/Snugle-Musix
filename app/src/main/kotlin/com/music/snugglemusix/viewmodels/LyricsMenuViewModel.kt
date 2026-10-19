@@ -43,7 +43,7 @@ constructor(
     val currentSong: State<Song?> = _currentSong
 
     init {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             networkConnectivity.networkStatus.collect { isConnected ->
                 _isNetworkAvailable.value = isConnected
             }

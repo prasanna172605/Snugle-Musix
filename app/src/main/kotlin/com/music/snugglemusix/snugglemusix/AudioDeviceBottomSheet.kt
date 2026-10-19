@@ -787,15 +787,9 @@ fun AudioQualitySelector(context: Context) {
         )
 
         val options = listOf(
-            "Opus",
-            "JioSaavn",
-            "MP4-LATM"
+            "Opus"
         )
-        val selectedIndex = when (audioQuality) {
-            AudioQuality.SAAVN, AudioQuality.LOSSLESS -> 1
-            AudioQuality.MP4_LATM -> 2
-            else -> 0
-        }
+        val selectedIndex = 0
 
         androidx.compose.foundation.layout.FlowRow(
             modifier = Modifier
@@ -809,19 +803,11 @@ fun AudioQualitySelector(context: Context) {
                 ToggleButton(
                     checked = selectedIndex == index,
                     onCheckedChange = {
-                        val newQuality = when (index) {
-                            1 -> AudioQuality.SAAVN
-                            2 -> AudioQuality.MP4_LATM
-                            else -> AudioQuality.OPUS
-                        }
+                        val newQuality = AudioQuality.OPUS
                         onAudioQualityChange(newQuality)
                         applyAudioQuality(context, newQuality)
                     },
-                    shapes = when (index) {
-                        0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
-                        options.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
-                        else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
-                    },
+                    shapes = ButtonGroupDefaults.connectedMiddleButtonShapes(),
                     modifier = Modifier
                         .weight(1f)
                         .height(48.dp)
@@ -858,13 +844,9 @@ fun DownloadQualitySelector() {
         )
 
         val options = listOf(
-            "Opus",
-            "320 kbps"
+            "Opus"
         )
-        val selectedIndex = when (downloadQuality) {
-            com.snuggle.music.constants.DownloadQuality.SAAVN, com.snuggle.music.constants.DownloadQuality.LOSSLESS -> 1
-            else -> 0
-        }
+        val selectedIndex = 0
 
         androidx.compose.foundation.layout.FlowRow(
             modifier = Modifier
@@ -878,17 +860,10 @@ fun DownloadQualitySelector() {
                 ToggleButton(
                     checked = selectedIndex == index,
                     onCheckedChange = {
-                        val newQuality = when (index) {
-                            1 -> com.snuggle.music.constants.DownloadQuality.SAAVN
-                            else -> com.snuggle.music.constants.DownloadQuality.YOUTUBE
-                        }
+                        val newQuality = com.snuggle.music.constants.DownloadQuality.YOUTUBE
                         onDownloadQualityChange(newQuality)
                     },
-                    shapes = when (index) {
-                        0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
-                        options.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
-                        else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
-                    },
+                    shapes = ButtonGroupDefaults.connectedMiddleButtonShapes(),
                     modifier = Modifier
                         .weight(1f)
                         .height(48.dp)

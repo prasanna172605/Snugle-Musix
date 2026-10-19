@@ -240,20 +240,17 @@ highlightKey: String? = null) {
             onDismiss = { showAudioQualityDialog = false },
             onSelect = {
                 onAudioQualityChange(it)
-                if (it == AudioQuality.LOSSLESS && crossfadeEnabled) {
-                    onCrossfadeEnabledChange(false)
-                    android.widget.Toast.makeText(context, "Crossfade has been turned off for Lossless playback", android.widget.Toast.LENGTH_SHORT).show()
-                }
+                
                 showAudioQualityDialog = false
             },
             title = stringResource(R.string.audio_quality),
-            current = if (audioQuality == AudioQuality.LOSSLESS) AudioQuality.SAAVN else audioQuality,
-            values = listOf(AudioQuality.OPUS, AudioQuality.SAAVN, AudioQuality.MP4_LATM),
+            current = audioQuality,
+            values = listOf(AudioQuality.OPUS),
             valueText = {
                 when (it) {
                     AudioQuality.OPUS -> "Opus (YouTube Music)"
-                    AudioQuality.SAAVN -> "JioSaavn (320 kbps)"
-                    AudioQuality.MP4_LATM -> "MP4-LATM (AAC 320 kbps)"
+                    
+                    
                     else -> "Opus"
                 }
             }
@@ -268,12 +265,11 @@ highlightKey: String? = null) {
                 showDownloadQualityDialog = false
             },
             title = stringResource(R.string.download_quality_title),
-            current = if (downloadQuality == com.snuggle.music.constants.DownloadQuality.LOSSLESS) com.snuggle.music.constants.DownloadQuality.SAAVN else downloadQuality,
-            values = listOf(com.snuggle.music.constants.DownloadQuality.YOUTUBE, com.snuggle.music.constants.DownloadQuality.SAAVN),
+            current = downloadQuality,
+            values = listOf(com.snuggle.music.constants.DownloadQuality.YOUTUBE),
             valueText = {
                 when (it) {
-                    com.snuggle.music.constants.DownloadQuality.YOUTUBE -> "Opus"
-                    else -> "320 kbps (mp4a-LATM)"
+                    else -> "Opus"
                 }
             }
         )
@@ -335,8 +331,8 @@ highlightKey: String? = null) {
                         Text(
                             when (audioQuality) {
                                 AudioQuality.OPUS -> "Opus (YouTube Music)"
-                                AudioQuality.SAAVN -> "JioSaavn (320 kbps)"
-                                AudioQuality.MP4_LATM -> "MP4-LATM (AAC 320 kbps)"
+                                
+                                
                                 else -> "Opus"
                             }
                         )
@@ -373,8 +369,7 @@ highlightKey: String? = null) {
                     description = {
                         Text(
                             when (downloadQuality) {
-                                com.snuggle.music.constants.DownloadQuality.YOUTUBE -> "Opus"
-                                else -> "320 kbps (mp4a-LATM)"
+                                else -> "Opus"
                             }
                         )
                     },
@@ -382,7 +377,7 @@ highlightKey: String? = null) {
                 ))
 
 
-                val isLosslessSelected = audioQuality == AudioQuality.LOSSLESS
+                val isLosslessSelected = false
                 add(Material3SettingsItem(
     isHighlighted = (highlightKey == stringResource(R.string.crossfade)),
                     icon = painterResource(R.drawable.linear_scale),

@@ -102,6 +102,10 @@ val SelectedYtmPlaylistsKey = stringPreferencesKey("selectedYtmPlaylists")
 val ShowAudioFallbackToastKey = booleanPreferencesKey("show_audio_fallback_toast")
 val AudioQualityKey = stringPreferencesKey("audioQuality")
 val IpVersionKey = stringPreferencesKey("ipVersion")
+val ForceOpusKey = booleanPreferencesKey("force_opus_audio")
+val EnableCronetKey = booleanPreferencesKey("enable_cronet_http3")
+val SponsorBlockEnabledKey = booleanPreferencesKey("sponsor_block_enabled")
+
 
 const val LOSSLESS_ENABLED = true
 
@@ -250,6 +254,7 @@ val DiscordActivityButton2CustomUrlKey = stringPreferencesKey("discord_activity_
 val LocalSongsSortTypeKey = stringPreferencesKey("local_songs_sort_type")
 val LocalSongsSortDescendingKey = booleanPreferencesKey("local_songs_sort_descending")
 
+val WavyPlayPauseKey = booleanPreferencesKey("wavy_play_pause")
 val SongFilterKey = stringPreferencesKey("songFilter")
 val ArtistFilterKey = stringPreferencesKey("artistFilter")
 val AlbumFilterKey = stringPreferencesKey("albumFilter")
@@ -448,6 +453,7 @@ enum class PlayerBackgroundStyle {
     GRADIENT,
     BLUR,
     GLOW_ANIMATED,
+    LIQUID_GLASS,
     APPLE_MUSIC,
     LIVE_MESH,
 }
@@ -794,3 +800,20 @@ val PreloadLyricsEnabledKey = booleanPreferencesKey("preload_lyrics_enabled")
 
 val UseClassicNavigationBarKey = booleanPreferencesKey("use_classic_navigation_bar")
 val UseLiquidGlassUiKey = booleanPreferencesKey("use_liquid_glass_ui")
+
+val LiquidGlassGlobalEnabledKey = booleanPreferencesKey("liquidGlassGlobalEnabled")
+val LiquidGlassTextColorKey = intPreferencesKey("liquidGlassTextColor")
+val LiquidGlassSurfaceTintColorKey = intPreferencesKey("liquidGlassSurfaceTintColor")
+val LiquidGlassSurfaceOpacityKey = floatPreferencesKey("liquidGlassSurfaceOpacity")
+val LiquidGlassVibrancyKey = floatPreferencesKey("liquidGlassVibrancy")
+val LiquidGlassBlurRadiusKey = floatPreferencesKey("liquidGlassBlurRadius")
+val LiquidGlassLensHeightKey = floatPreferencesKey("liquidGlassLensHeight")
+val LiquidGlassLensAmountKey = floatPreferencesKey("liquidGlassLensAmount")
+val LiquidGlassChromaticAberrationKey = booleanPreferencesKey("liquidGlassChromaticAberration")
+val LiquidGlassDepthEffectKey = booleanPreferencesKey("liquidGlassDepthEffect")
+val LiquidGlassPlayerEnabledKey = booleanPreferencesKey("liquidGlassPlayerEnabled")
+val LiquidGlassMiniPlayerEnabledKey = booleanPreferencesKey("liquidGlassMiniPlayerEnabled")
+val LiquidGlassNavBarEnabledKey = booleanPreferencesKey("liquidGlassNavBarEnabled")
+val UseFloatingNavBarKey = booleanPreferencesKey("useFloatingNavBar")
+
+val BlockedArtistsKey = androidx.datastore.preferences.core.stringSetPreferencesKey("blockedArtists")

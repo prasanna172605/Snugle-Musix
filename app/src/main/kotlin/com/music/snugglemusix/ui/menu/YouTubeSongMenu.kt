@@ -87,6 +87,9 @@ import com.snuggle.music.ui.utils.resize
 import com.snuggle.music.utils.joinByBullet
 import com.snuggle.music.utils.makeTimeString
 import com.snuggle.music.utils.rememberPreference
+import com.snuggle.music.constants.BlockedArtistsKey
+import com.snuggle.music.utils.dataStore
+import androidx.datastore.preferences.core.edit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -122,6 +125,11 @@ fun YouTubeSongMenu(
     val (exportDirectoryUri) = rememberPreference(key = ExportDirectoryUriKey, defaultValue = "")
     val (exportingSongIds) = rememberPreference(key = ExportingSongIdsKey, defaultValue = "")
     val (exportedSongIds) = rememberPreference(key = ExportedSongIdsKey, defaultValue = "")
+
+    val (blockedArtists, _) = rememberPreference(key = BlockedArtistsKey, defaultValue = emptySet<String>())
+    val firstArtist = artists.firstOrNull()
+    val firstArtistEntry = firstArtist?.let { "${it.id}||${it.name}" } ?: ""
+    val isBlocked = firstArtist?.let { artist -> blockedArtists.any { it.startsWith("${artist.id}||") } } == true
 
     val isExporting = remember(exportingSongIds, song.id) { exportingSongIds.split(",").contains(song.id) }
     val isExported = remember(exportedSongIds, song.id) { exportedSongIds.split(",").contains(song.id) }
@@ -695,6 +703,34 @@ fun YouTubeSongMenu(
                                     } else {
                                         showSelectArtistDialog = true
                                     }
+                                }
+                            )
+                        )
+                    }
+                    if (firstArtist != null) {
+                        add(
+                            Material3MenuItemData(
+                                title = { Text(text = if (isBlocked) "Unblock Artist" else "Block Artist") },
+                                description = { Text(text = firstArtist.name) },
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(if (isBlocked) R.drawable.close else R.drawable.remove),
+                                        contentDescription = null,
+                                        tint = if (isBlocked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                                    )
+                                },
+                                onClick = {
+                                    coroutineScope.launch(Dispatchers.IO) {
+                                        context.dataStore.edit { prefs ->
+                                            val current = prefs[BlockedArtistsKey] ?: emptySet()
+                                            prefs[BlockedArtistsKey] = if (isBlocked) {
+                                                current.filter { !it.startsWith("${firstArtist.id}||") }.toSet()
+                                            } else {
+                                                current + firstArtistEntry
+                                            }
+                                        }
+                                    }
+                                    onDismiss()
                                 }
                             )
                         )

@@ -11,7 +11,7 @@ class ProviderRegistry @Inject constructor(
     val tasteProfileEngine: com.snuggle.music.personalization.TasteProfileEngine,
     val recommendationScorer: com.snuggle.music.personalization.RecommendationScorer
 ) {
-    val providers: List<MusicProvider> = listOf(youTubeProvider, jioSaavnProvider)
+    val providers: List<MusicProvider> = listOf(youTubeProvider)
 
     init {
         activeInstance = this
@@ -22,11 +22,7 @@ class ProviderRegistry @Inject constructor(
     }
 
     fun getProviderForMediaId(mediaId: String): MusicProvider {
-        return if (JioSaavnProvider.isJioSaavnId(mediaId)) {
-            jioSaavnProvider
-        } else {
-            youTubeProvider
-        }
+        return youTubeProvider
     }
 
     companion object {

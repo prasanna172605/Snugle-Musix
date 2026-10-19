@@ -5,6 +5,7 @@ package com.snuggle.music.ui.screens.search.suggestions
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.NavController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -21,10 +22,14 @@ import com.music.innertube.models.ArtistItem
 import com.music.innertube.models.WatchEndpoint
 import com.snuggle.music.playback.PlayerConnection
 import com.snuggle.music.playback.queues.YouTubeQueue
-import androidx.navigation.NavController
+import com.snuggle.music.personalization.RegionalPreferenceManager
+import com.snuggle.music.personalization.MusicLanguageClassifier
+import com.snuggle.music.personalization.RegionProfile
 
 @HiltViewModel
-class SuggestionsViewModel @Inject constructor() : ViewModel() {
+class SuggestionsViewModel @Inject constructor(
+    private val regionalPreferenceManager: RegionalPreferenceManager,
+) : ViewModel() {
     private var currentLoadedRegion: String? = null
     
     private val _suggestionTracks = MutableStateFlow<List<SuggestionTrack>?>(null)
@@ -46,19 +51,19 @@ class SuggestionsViewModel @Inject constructor() : ViewModel() {
     val isManualLoading: StateFlow<Boolean> = _isManualLoading
 
     fun refresh(countryCode: String = "system", force: Boolean = false) {
-        val resolvedCode = if (countryCode == "system") {
-            java.util.Locale.getDefault().country.lowercase()
-        } else {
-            countryCode.lowercase()
-        }
-
-        
-        if (_isLoading.value && !force && currentLoadedRegion == resolvedCode) return
-        
         viewModelScope.launch(Dispatchers.IO) {
+            val activeRegion = regionalPreferenceManager.getActiveRegion()
+            val resolvedCode = if (countryCode == "system") {
+                val region = activeRegion.regionCode.substringBefore("-").lowercase()
+                if (region.isBlank() || region == "global") java.util.Locale.getDefault().country.lowercase() else region
+            } else {
+                countryCode.lowercase()
+            }
+
+            if (_isLoading.value && !force && currentLoadedRegion == resolvedCode) return@launch
+            
             _isLoading.value = true
             if (force) _isManualLoading.value = true
-            
             
             if (currentLoadedRegion != resolvedCode || force) {
                 _suggestionTracks.value = null
@@ -74,8 +79,18 @@ class SuggestionsViewModel @Inject constructor() : ViewModel() {
                         try {
                             val tracks = AppleMusicScraper.fetchTopSongs(resolvedCode)
                             if (tracks.isNotEmpty()) {
-                                _suggestionTracks.value = tracks
-                                _suggestionArtists.value = AppleMusicScraper.getTrendingArtists(tracks)
+                                val prioritizedTracks = if (resolvedCode == "in" || activeRegion != RegionProfile.GLOBAL) {
+                                    tracks.sortedWith(
+                                        compareByDescending<SuggestionTrack> { track ->
+                                            val lang = MusicLanguageClassifier.classify(track.title, listOf(track.artist))
+                                            activeRegion.primaryLanguages[lang] ?: 0.05f
+                                        }.thenBy { it.rank }
+                                    ).mapIndexed { idx, item -> item.copy(rank = idx + 1) }
+                                } else {
+                                    tracks
+                                }
+                                _suggestionTracks.value = prioritizedTracks
+                                _suggestionArtists.value = AppleMusicScraper.getTrendingArtists(prioritizedTracks)
                             }
                         } catch (e: Exception) {
                             Log.e("SuggestionsViewModel", "Failed to fetch songs", e)
@@ -86,7 +101,17 @@ class SuggestionsViewModel @Inject constructor() : ViewModel() {
                         try {
                             val albums = AppleMusicScraper.fetchTopAlbums(resolvedCode)
                             if (albums.isNotEmpty()) {
-                                _suggestionAlbums.value = albums
+                                val prioritizedAlbums = if (resolvedCode == "in" || activeRegion != RegionProfile.GLOBAL) {
+                                    albums.sortedWith(
+                                        compareByDescending<SuggestionAlbum> { album ->
+                                            val lang = MusicLanguageClassifier.classify(album.title, listOf(album.artist))
+                                            activeRegion.primaryLanguages[lang] ?: 0.05f
+                                        }.thenBy { it.rank }
+                                    ).mapIndexed { idx, item -> item.copy(rank = idx + 1) }
+                                } else {
+                                    albums
+                                }
+                                _suggestionAlbums.value = prioritizedAlbums
                             }
                         } catch (e: Exception) {
                             Log.e("SuggestionsViewModel", "Failed to fetch albums", e)
@@ -97,7 +122,17 @@ class SuggestionsViewModel @Inject constructor() : ViewModel() {
                         try {
                             val videos = AppleMusicScraper.fetchTopVideos(resolvedCode)
                             if (videos.isNotEmpty()) {
-                                _suggestionVideos.value = videos
+                                val prioritizedVideos = if (resolvedCode == "in" || activeRegion != RegionProfile.GLOBAL) {
+                                    videos.sortedWith(
+                                        compareByDescending<SuggestionTrack> { video ->
+                                            val lang = MusicLanguageClassifier.classify(video.title, listOf(video.artist))
+                                            activeRegion.primaryLanguages[lang] ?: 0.05f
+                                        }.thenBy { it.rank }
+                                    ).mapIndexed { idx, item -> item.copy(rank = idx + 1) }
+                                } else {
+                                    videos
+                                }
+                                _suggestionVideos.value = prioritizedVideos
                             }
                         } catch (e: Exception) {
                             Log.e("SuggestionsViewModel", "Failed to fetch videos", e)

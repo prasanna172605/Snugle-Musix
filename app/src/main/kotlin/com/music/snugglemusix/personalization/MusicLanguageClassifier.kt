@@ -105,6 +105,14 @@ object MusicLanguageClassifier {
         )
     }
 
+    fun classify(media: com.snuggle.music.models.MediaMetadata): MusicLanguage {
+        return classify(
+            title = media.title,
+            artists = media.artists.map { it.name },
+            extraText = media.album?.title
+        )
+    }
+
     fun classify(album: Album): MusicLanguage {
         return classify(
             title = album.album.title,

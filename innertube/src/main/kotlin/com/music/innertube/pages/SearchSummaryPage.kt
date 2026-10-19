@@ -10,6 +10,7 @@ import com.music.innertube.models.PlaylistItem
 import com.music.innertube.models.SongItem
 import com.music.innertube.models.YTItem
 import com.music.innertube.models.clean
+import com.music.innertube.models.filterBlockedArtists
 import com.music.innertube.models.filterExplicit
 import com.music.innertube.models.filterVideoSongs
 import com.music.innertube.models.filterYoutubeShorts
@@ -25,6 +26,19 @@ data class SearchSummary(
 data class SearchSummaryPage(
     val summaries: List<SearchSummary>,
 ) {
+    fun filterBlockedArtists() =
+        SearchSummaryPage(
+            summaries =
+                summaries.mapNotNull { s ->
+                    s.copy(
+                        items =
+                            s.items.filterBlockedArtists().ifEmpty {
+                                return@mapNotNull null
+                            },
+                    )
+                },
+        )
+
     fun filterExplicit(enabled: Boolean) =
         if (enabled) {
             SearchSummaryPage(

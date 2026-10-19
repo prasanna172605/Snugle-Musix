@@ -26,6 +26,7 @@ import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.ZoneOffset
+import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -218,7 +219,7 @@ constructor(
             .stateIn(viewModelScope, SharingStarted.Lazily, null)
 
     init {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             mostPlayedArtists.collect { artists ->
                 artists
                     .map { it.artist }
@@ -236,7 +237,7 @@ constructor(
                     }
             }
         }
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             mostPlayedAlbums.collect { albums ->
                 albums
                     .filter {

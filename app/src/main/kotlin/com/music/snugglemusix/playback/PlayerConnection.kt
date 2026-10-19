@@ -32,12 +32,21 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.flow.map
+import com.snuggle.music.constants.SponsorBlockEnabledKey
+import com.music.snugglemusix.data.SponsorBlockRepository
+import com.music.snugglemusix.models.SponsorBlockSegment
+import com.snuggle.music.utils.dataStore
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class PlayerConnection(
-    context: Context,
+    val context: Context,
     binder: MusicBinder,
     val database: MusicDatabase,
-    scope: CoroutineScope,
+    val scope: CoroutineScope,
 ) : Player.Listener {
     private companion object {
         private const val TAG = "PlayerConnection"
@@ -122,15 +131,15 @@ class PlayerConnection(
     
     val mediaMetadata = MutableStateFlow(player.currentMetadata)
     val currentSong =
-        mediaMetadata.flatMapLatest {
-            database.song(it?.id)
+        mediaMetadata.flatMapLatest { metadata ->
+            metadata?.id?.let { database.song(it) } ?: kotlinx.coroutines.flow.flowOf(null)
         }
-    val currentLyrics = mediaMetadata.flatMapLatest { mediaMetadata ->
-        database.lyrics(mediaMetadata?.id)
+    val currentLyrics = mediaMetadata.flatMapLatest { metadata ->
+        metadata?.id?.let { database.lyrics(it) } ?: kotlinx.coroutines.flow.flowOf(null)
     }
     val currentFormat =
-        mediaMetadata.flatMapLatest { mediaMetadata ->
-            database.format(mediaMetadata?.id)
+        mediaMetadata.flatMapLatest { metadata ->
+            metadata?.id?.let { database.format(it) } ?: kotlinx.coroutines.flow.flowOf(null)
         }
 
     val queueTitle = MutableStateFlow<String?>(null)
@@ -158,6 +167,10 @@ class PlayerConnection(
 
     var onSkipPrevious: (() -> Unit)? = null
     var onSkipNext: (() -> Unit)? = null
+
+    private val sponsorBlockRepository = SponsorBlockRepository()
+    private var sponsorBlockJob: Job? = null
+    private val sponsorBlockSegments = MutableStateFlow<List<SponsorBlockSegment>>(emptyList())
 
     private var attachedPlayer: Player? = null
 
@@ -202,6 +215,64 @@ class PlayerConnection(
         repeatMode.value = newPlayer.repeatMode
         
         Timber.tag(TAG).d("Attached to new player instance: $newPlayer")
+
+        startSponsorBlockPolling()
+    }
+
+    private fun startSponsorBlockPolling() {
+        sponsorBlockJob?.cancel()
+        sponsorBlockJob = scope.launch {
+            val sponsorBlockEnabledFlow = context.dataStore.data.map {
+                (try {
+                    it[SponsorBlockEnabledKey]
+                } catch (e: Exception) {
+                    null
+                }) ?: true
+            }
+
+            launch {
+                combine(mediaMetadata, sponsorBlockEnabledFlow, ::Pair).collect { pair ->
+                    val metadata = pair.first
+                    val enabled = pair.second
+                    val videoId = metadata?.id
+                    if (enabled && !videoId.isNullOrBlank()) {
+                        try {
+                            sponsorBlockSegments.value = sponsorBlockRepository.getSkipSegments(videoId)
+                        } catch (e: Exception) {
+                            Timber.tag(TAG).e(e, "Error fetching SponsorBlock segments")
+                            sponsorBlockSegments.value = emptyList()
+                        }
+                    } else {
+                        sponsorBlockSegments.value = emptyList()
+                    }
+                }
+            }
+
+            launch {
+                while (isActive) {
+                    try {
+                        if (player.isPlaying) {
+                            val currentSegments = sponsorBlockSegments.value
+                            if (currentSegments.isNotEmpty()) {
+                                val currentPosSec = player.currentPosition / 1000f
+                                for (segment in currentSegments) {
+                                    if (segment.segment.size >= 2 && currentPosSec >= segment.segment[0] && currentPosSec < segment.segment[1]) {
+                                        Timber.d(
+                                            "SponsorBlock: skipping segment ${segment.category} from ${segment.segment[0]} to ${segment.segment[1]}"
+                                        )
+                                        player.seekTo((segment.segment[1] * 1000).toLong())
+                                        break
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Timber.tag(TAG).e(e, "Error checking SponsorBlock segments")
+                    }
+                    delay(500)
+                }
+            }
+        }
     }
 
     fun playQueue(queue: Queue) {
@@ -475,6 +546,7 @@ class PlayerConnection(
 
     fun dispose() {
         try {
+            sponsorBlockJob?.cancel()
             attachedPlayer?.removeListener(this)
             attachedPlayer = null
             Timber.tag(TAG).d("PlayerConnection disposed successfully")

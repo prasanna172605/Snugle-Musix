@@ -75,6 +75,9 @@ import com.snuggle.music.constants.EnablePaxsenixKey
 import com.snuggle.music.constants.HideExplicitKey
 import com.snuggle.music.constants.HideVideoSongsKey
 import com.snuggle.music.constants.HideYoutubeShortsKey
+import com.snuggle.music.constants.ForceOpusKey
+import com.snuggle.music.constants.EnableCronetKey
+import com.snuggle.music.constants.SponsorBlockEnabledKey
 import com.snuggle.music.constants.AlbumCanvasEnabledKey
 import com.snuggle.music.constants.LanguageCodeToName
 import com.snuggle.music.constants.LyricsProviderOrderKey
@@ -133,10 +136,13 @@ highlightKey: String? = null) {
     val (contentCountry, onContentCountryChange) = rememberPreference(key = ContentCountryKey, defaultValue = "system")
     val (regionalPreferenceProfile, onRegionalPreferenceProfileChange) = rememberPreference(key = com.snuggle.music.constants.RegionalPreferenceProfileKey, defaultValue = "")
     val (suggestionRegion, onSuggestionRegionChange) = rememberPreference(key = SuggestionRegionKey, defaultValue = "system")
-    val (hideExplicit, onHideExplicitChange) = rememberPreference(key = HideExplicitKey, defaultValue = false)
-    val (hideVideoSongs, onHideVideoSongsChange) = rememberPreference(key = HideVideoSongsKey, defaultValue = false)
+    val (forceOpus, onForceOpusChange) = rememberPreference(key = ForceOpusKey, defaultValue = true)
+    val (enableCronet, onEnableCronetChange) = rememberPreference(key = EnableCronetKey, defaultValue = true)
+    val (hideExplicit, onHideExplicitChange) = rememberPreference(key = HideExplicitKey, defaultValue = true)
+    val (hideVideoSongs, onHideVideoSongsChange) = rememberPreference(key = HideVideoSongsKey, defaultValue = true)
 
-    val (hideYoutubeShorts, onHideYoutubeShortsChange) = rememberPreference(key = HideYoutubeShortsKey, defaultValue = false)
+    val (hideYoutubeShorts, onHideYoutubeShortsChange) = rememberPreference(key = HideYoutubeShortsKey, defaultValue = true)
+    val (sponsorBlockEnabled, onSponsorBlockEnabledChange) = rememberPreference(key = SponsorBlockEnabledKey, defaultValue = true)
     val (showArtistDescription, onShowArtistDescriptionChange) = rememberPreference(key = ShowArtistDescriptionKey, defaultValue = true)
     val (showArtistSubscriberCount, onShowArtistSubscriberCountChange) = rememberPreference(key = ShowArtistSubscriberCountKey, defaultValue = true)
     val (showMonthlyListeners, onShowMonthlyListenersChange) = rememberPreference(key = ShowMonthlyListenersKey, defaultValue = true)
@@ -747,6 +753,72 @@ highlightKey: String? = null) {
                         )
                     },
                     onClick = { onHideYoutubeShortsChange(!hideYoutubeShorts) }
+                ),
+                Material3SettingsItem(
+                    isHighlighted = (highlightKey == stringResource(R.string.force_opus_audio)),
+                    icon = painterResource(R.drawable.music_note),
+                    title = { Text(stringResource(R.string.force_opus_audio)) },
+                    description = { Text(stringResource(R.string.force_opus_audio_desc)) },
+                    trailingContent = {
+                        Switch(
+                            checked = forceOpus,
+                            onCheckedChange = onForceOpusChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (forceOpus) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onForceOpusChange(!forceOpus) }
+                ),
+                Material3SettingsItem(
+                    isHighlighted = (highlightKey == stringResource(R.string.enable_cronet_http3)),
+                    icon = painterResource(R.drawable.speed),
+                    title = { Text(stringResource(R.string.enable_cronet_http3)) },
+                    description = { Text(stringResource(R.string.enable_cronet_http3_desc)) },
+                    trailingContent = {
+                        Switch(
+                            checked = enableCronet,
+                            onCheckedChange = onEnableCronetChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (enableCronet) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onEnableCronetChange(!enableCronet) }
+                ),
+                Material3SettingsItem(
+                    isHighlighted = (highlightKey == stringResource(R.string.content_sponsor_block)),
+                    icon = painterResource(R.drawable.security),
+                    title = { Text(stringResource(R.string.content_sponsor_block)) },
+                    description = { Text(stringResource(R.string.content_sponsor_block_desc)) },
+                    trailingContent = {
+                        Switch(
+                            checked = sponsorBlockEnabled,
+                            onCheckedChange = onSponsorBlockEnabledChange,
+                            thumbContent = {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (sponsorBlockEnabled) R.drawable.check else R.drawable.close
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                                )
+                            }
+                        )
+                    },
+                    onClick = { onSponsorBlockEnabledChange(!sponsorBlockEnabled) }
                 )
             )
         )
@@ -862,6 +934,13 @@ highlightKey: String? = null) {
                         )
                     },
                     onClick = { onShowArtistBackgroundVideoChange(!showArtistBackgroundVideo) }
+                ),
+                Material3SettingsItem(
+                    isHighlighted = (highlightKey == "Blocked Artists"),
+                    icon = painterResource(R.drawable.search_off),
+                    title = { Text("Blocked Artists") },
+                    description = { Text("Manage artists excluded from playback and recommendations") },
+                    onClick = { navController.navigate("settings/content/blocked_artists") }
                 )
             )
         )

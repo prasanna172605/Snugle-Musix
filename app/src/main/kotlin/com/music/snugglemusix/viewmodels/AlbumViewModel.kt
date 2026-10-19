@@ -40,38 +40,12 @@ constructor(
     var descriptionRuns = MutableStateFlow<List<com.music.innertube.models.Run>?>(null)
 
     init {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val album = database.album(albumId).first()
             if (album?.description != null) {
                 description.value = album.description
             }
-            if (com.snuggle.music.providers.JioSaavnProvider.isJioSaavnId(albumId)) {
-                providerRegistry.jioSaavnProvider.getAlbum(albumId)
-                    .onSuccess { (saavnAlbum, saavnSongs) ->
-                        playlistId.value = saavnAlbum.playlistId
-                        if (saavnAlbum.description != null) {
-                            description.value = saavnAlbum.description
-                        }
-                        val albumPage = com.music.innertube.pages.AlbumPage(
-                            album = saavnAlbum,
-                            songs = saavnSongs,
-                            otherVersions = emptyList(),
-                            releasesForYou = emptyList(),
-                            description = saavnAlbum.description,
-                            descriptionRuns = null
-                        )
-                        database.transaction {
-                            if (album == null) {
-                                insert(albumPage)
-                            } else {
-                                update(album.album, albumPage, album.artists)
-                            }
-                        }
-                    }.onFailure {
-                        reportException(it)
-                    }
-                return@launch
-            }
+
 
             YouTube
                 .album(albumId)

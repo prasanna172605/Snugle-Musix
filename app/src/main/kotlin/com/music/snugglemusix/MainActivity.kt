@@ -1,7 +1,15 @@
 package com.snuggle.music
 
-import com.snuggle.music.ui.component.rememberBackdrop
-import com.snuggle.music.ui.component.layerBackdrop
+
+import com.snuggle.music.ui.component.GlassComponent
+import com.snuggle.music.ui.component.GlassEffectConfig
+import com.snuggle.music.ui.component.LocalGlassEffectConfig
+import com.snuggle.music.ui.component.LocalAppBackdrop
+import com.snuggle.music.ui.component.backdrop.backdrops.rememberLayerBackdrop
+import com.snuggle.music.ui.component.backdrop.backdrops.layerBackdrop
+import androidx.compose.ui.input.pointer.pointerInput
+import com.snuggle.music.constants.*
+
 
 
 import com.snuggle.music.R
@@ -33,6 +41,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -174,6 +183,7 @@ import com.snuggle.music.constants.SelectedThemeColorKey
 import com.snuggle.music.constants.StopMusicOnTaskClearKey
 import com.snuggle.music.constants.UseNewMiniPlayerDesignKey
 import com.snuggle.music.constants.UseClassicNavigationBarKey
+import com.snuggle.music.constants.UseFloatingNavBarKey
 import com.snuggle.music.constants.UseLiquidGlassUiKey
 import com.snuggle.music.ui.component.AppNavigationBar
 import com.snuggle.music.db.MusicDatabase
@@ -561,7 +571,55 @@ class MainActivity : ComponentActivity() {
                 }
                 val (useNewMiniPlayerDesign) = rememberPreference(UseNewMiniPlayerDesignKey, defaultValue = true)
                 val (useClassicNavigationBar) = rememberPreference(UseClassicNavigationBarKey, defaultValue = false)
+                val (useFloatingNavBar) = rememberPreference(UseFloatingNavBarKey, defaultValue = false)
+                val (useLiquidGlassUi) = rememberPreference(UseLiquidGlassUiKey, defaultValue = true)
 
+                
+                val (liquidGlassGlobalEnabled) = rememberPreference(LiquidGlassGlobalEnabledKey, defaultValue = false)
+                val (liquidGlassVibrancy) = rememberPreference(LiquidGlassVibrancyKey, defaultValue = 0.5f)
+                val (liquidGlassBlurRadius) = rememberPreference(LiquidGlassBlurRadiusKey, defaultValue = 0f)
+                val (liquidGlassLensHeight) = rememberPreference(LiquidGlassLensHeightKey, defaultValue = 0f)
+                val (liquidGlassLensAmount) = rememberPreference(LiquidGlassLensAmountKey, defaultValue = 0f)
+                val (liquidGlassChromaticAberration) = rememberPreference(LiquidGlassChromaticAberrationKey, defaultValue = false)
+                val (liquidGlassDepthEffect) = rememberPreference(LiquidGlassDepthEffectKey, defaultValue = false)
+                val (liquidGlassSurfaceTintColor) = rememberPreference(LiquidGlassSurfaceTintColorKey, defaultValue = 0)
+                val (liquidGlassSurfaceOpacity) = rememberPreference(LiquidGlassSurfaceOpacityKey, defaultValue = 0f)
+                val (liquidGlassTextColor) = rememberPreference(LiquidGlassTextColorKey, defaultValue = 0)
+                val (liquidGlassPlayerEnabled) = rememberPreference(LiquidGlassPlayerEnabledKey, defaultValue = true)
+                val (liquidGlassMiniPlayerEnabled) = rememberPreference(LiquidGlassMiniPlayerEnabledKey, defaultValue = true)
+                val (liquidGlassNavBarEnabled) = rememberPreference(LiquidGlassNavBarEnabledKey, defaultValue = true)
+
+                val glassEffectConfig = remember(
+                    liquidGlassGlobalEnabled,
+                    liquidGlassTextColor,
+                    liquidGlassSurfaceTintColor,
+                    liquidGlassSurfaceOpacity,
+                    liquidGlassVibrancy,
+                    liquidGlassBlurRadius,
+                    liquidGlassLensHeight,
+                    liquidGlassLensAmount,
+                    liquidGlassChromaticAberration,
+                    liquidGlassDepthEffect,
+                    liquidGlassPlayerEnabled,
+                    liquidGlassMiniPlayerEnabled,
+                    liquidGlassNavBarEnabled,
+                ) {
+                    GlassEffectConfig(
+                        globalEnabled = liquidGlassGlobalEnabled,
+                        vibrancy = liquidGlassVibrancy,
+                        blurRadius = liquidGlassBlurRadius,
+                        lensHeight = liquidGlassLensHeight,
+                        lensAmount = liquidGlassLensAmount,
+                        chromaticAberration = liquidGlassChromaticAberration,
+                        depthEffect = liquidGlassDepthEffect,
+                        surfaceTintColor = if (liquidGlassSurfaceTintColor != 0) Color(liquidGlassSurfaceTintColor) else Color.Unspecified,
+                        surfaceOpacity = liquidGlassSurfaceOpacity,
+                        textColor = if (liquidGlassTextColor != 0) Color(liquidGlassTextColor) else Color.Unspecified,
+                        playerEnabled = liquidGlassPlayerEnabled,
+                        miniPlayerEnabled = liquidGlassMiniPlayerEnabled,
+                        navBarEnabled = liquidGlassNavBarEnabled,
+                    )
+                }
                 val defaultOpenTab = remember {
                     dataStore[DefaultOpenTabKey].toEnum(defaultValue = NavigationTab.HOME)
                 }
@@ -696,6 +754,17 @@ class MainActivity : ComponentActivity() {
                             (playerBottomSheetState.isCollapsed || playerBottomSheetState.isDismissed)
                     },
                 )
+
+                val mediaMetadata by playerConnection?.mediaMetadata?.collectAsState() ?: remember { mutableStateOf(null) }
+                val isPlaying by playerConnection?.isPlaying?.collectAsState() ?: remember { mutableStateOf(false) }
+
+                val isGlassActive = glassEffectConfig.isEnabledFor(GlassComponent.NAV_BAR) || (useLiquidGlassUi && glassEffectConfig.globalEnabled)
+
+                val isInlineNavBar by remember(topAppBarScrollBehavior, isGlassActive, useFloatingNavBar) {
+                    derivedStateOf {
+                        useFloatingNavBar && isGlassActive && topAppBarScrollBehavior.state.heightOffset < -10f
+                    }
+                }
 
                 
                 LaunchedEffect(navBackStackEntry) {
@@ -833,7 +902,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 val baseBg = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer
-                val backdrop = rememberBackdrop(baseBg)
+                val backdrop = rememberLayerBackdrop { drawRect(baseBg); drawContent() }
 
                 val ringtoneViewModel: RingtoneViewModel = viewModel()
                 val ringtoneUiState by ringtoneViewModel.uiState.collectAsState()
@@ -848,7 +917,8 @@ class MainActivity : ComponentActivity() {
                     LocalShimmerTheme provides getShimmerTheme(),
                     LocalSyncUtils provides syncUtils,
                     LocalListenTogetherManager provides listenTogetherManager,
-                    com.snuggle.music.ui.component.LocalPlatformBackdrop provides backdrop,
+                    LocalAppBackdrop provides backdrop,
+LocalGlassEffectConfig provides glassEffectConfig,
                 ) {
 
                     Scaffold(
@@ -964,10 +1034,23 @@ class MainActivity : ComponentActivity() {
 
                             if (!showRail && currentRoute != "update" && currentRoute != "listen_together/chat" && currentRoute != "ambient_mode" && currentRoute != "uptime" && currentRoute?.startsWith("settings") != true) {
                                 Box {
+                                    val isInlineMiniPlayerDocked = isInlineNavBar && mediaMetadata != null && !useClassicNavigationBar
+                                    val isMiniPlayerFullyDocked = isInlineMiniPlayerDocked && playerBottomSheetState.isCollapsed
+                                    val miniPlayerAlpha by animateFloatAsState(
+                                        targetValue = if (isMiniPlayerFullyDocked) 0f else 1f,
+                                        animationSpec = tween(durationMillis = 200),
+                                        label = "miniPlayerInlineAlpha"
+                                    )
                                     BottomSheetPlayer(
                                         state = playerBottomSheetState,
                                         navController = navController,
-                                        pureBlack = pureBlack
+                                        pureBlack = pureBlack,
+                                        isExpandable = !isMiniPlayerFullyDocked,
+                                        modifier = Modifier.graphicsLayer {
+                                            if (playerBottomSheetState.isCollapsed) {
+                                                alpha = miniPlayerAlpha
+                                            }
+                                        }
                                     )
 
                                     val navSlideDistance = bottomInset + (if (useClassicNavigationBar) 0.dp else FloatingToolbarBottomPadding) + NavigationBarHeight
@@ -1003,32 +1086,62 @@ class MainActivity : ComponentActivity() {
                                             )
                                         } else {
                                             FloatingNavigationToolbar(
-                                            items = navigationItems,
-                                            pureBlack = pureBlack,
-                                            onShuffleClick = onShuffleClick,
-                                            shuffleIconRes = R.drawable.shuffle,
-                                            shuffleContentDescription = stringResource(R.string.shuffle),
-                                            onMusicRecognitionClick = onMusicRecognitionClick,
-                                            musicRecognitionContentDescription = stringResource(R.string.recognition),
-                                            onSettingsClick = { 
-                                                navController.navigate("settings") {
-                                                    launchSingleTop = true
-                                                }
-                                            },
-                                            settingsIconRes = R.drawable.settings,
-                                            settingsContentDescription = stringResource(R.string.settings),
-                                            isSelected = { screen ->
-                                                currentRoute == screen.route || currentRoute?.startsWith("${screen.route}/") == true
-                                            },
-                                            onItemClick = onNavItemClick,
-                                            modifier = Modifier
-                                                .align(Alignment.BottomCenter)
-                                                .padding(
-                                                    start = FloatingToolbarHorizontalPadding,
-                                                    end = FloatingToolbarHorizontalPadding,
-                                                    bottom = bottomInset + FloatingToolbarBottomPadding,
-                                                )
-                                                .height(NavigationBarHeight)
+                                                items = navigationItems,
+                                                pureBlack = pureBlack,
+                                                onShuffleClick = onShuffleClick,
+                                                shuffleIconRes = R.drawable.shuffle,
+                                                shuffleContentDescription = stringResource(R.string.shuffle),
+                                                onMusicRecognitionClick = onMusicRecognitionClick,
+                                                musicRecognitionContentDescription = stringResource(R.string.recognition),
+                                                onSettingsClick = { 
+                                                    navController.navigate("settings") {
+                                                        launchSingleTop = true
+                                                    }
+                                                },
+                                                settingsIconRes = R.drawable.settings,
+                                                settingsContentDescription = stringResource(R.string.settings),
+                                                isInline = isInlineNavBar,
+                                                mediaMetadata = mediaMetadata,
+                                                isPlaying = isPlaying,
+                                                onMiniPlayerClick = {
+                                                    playerBottomSheetState.expandSoft()
+                                                },
+                                                onMiniPlayerPlayPause = {
+                                                    playerConnection?.player?.let { player ->
+                                                        if (player.isPlaying) player.pause() else player.play()
+                                                    }
+                                                },
+                                                isSelected = { screen ->
+                                                    currentRoute == screen.route || currentRoute?.startsWith("${screen.route}/") == true
+                                                },
+                                                onItemClick = onNavItemClick,
+                                                onHomeDoubleClick = {
+                                                    navController.currentBackStackEntry?.savedStateHandle?.set("refreshHome", true)
+                                                },
+                                                onSearchDoubleClick = {
+                                                    if (currentRoute != Screens.Search.route) {
+                                                        navController.navigate(Screens.Search.route) {
+                                                            launchSingleTop = true
+                                                        }
+                                                    }
+                                                    navController.currentBackStackEntry?.savedStateHandle?.set("focusSearchBar", true)
+                                                },
+                                                onSearchLongClick = {
+                                                    if (currentRoute != Screens.Search.route) {
+                                                        navController.navigate(Screens.Search.route) {
+                                                            launchSingleTop = true
+                                                        }
+                                                    }
+                                                    navController.currentBackStackEntry?.savedStateHandle?.set("focusSearchBar", true)
+                                                },
+                                                modifier = Modifier
+                                                    .align(Alignment.BottomCenter)
+                                                    .padding(
+                                                        start = FloatingToolbarHorizontalPadding,
+                                                        end = FloatingToolbarHorizontalPadding,
+                                                        bottom = bottomInset + FloatingToolbarBottomPadding,
+                                                    )
+                                                    .height(NavigationBarHeight)
                                             )
                                         }
                                     }

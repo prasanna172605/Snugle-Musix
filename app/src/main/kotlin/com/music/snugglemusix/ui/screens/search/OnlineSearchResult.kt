@@ -257,18 +257,14 @@ fun OnlineSearchResult(
                                 if (item.id == mediaMetadata?.id) {
                                     playerConnection.togglePlayPause()
                                 } else {
-                                    if (com.snuggle.music.providers.JioSaavnProvider.isJioSaavnId(item.id)) {
-                                        playerConnection.playQueue(
-                                            com.snuggle.music.playback.queues.JioSaavnQueue(item)
-                                        )
-                                    } else {
+                                    
                                         playerConnection.playQueue(
                                             YouTubeQueue(
                                                 WatchEndpoint(videoId = item.id),
                                                 item.toMediaMetadata()
                                             )
                                         )
-                                    }
+                                    
                                 }
                             }
 

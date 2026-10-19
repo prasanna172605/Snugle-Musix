@@ -11,6 +11,7 @@ import com.snuggle.music.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 
 @HiltViewModel
@@ -23,7 +24,7 @@ class BrowseViewModel @Inject constructor(
     val title = MutableStateFlow<String?>("")
  
     init {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             browseId?.let {
                 YouTube.browse(browseId, null).onSuccess { result ->
                     

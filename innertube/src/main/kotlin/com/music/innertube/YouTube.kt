@@ -79,7 +79,11 @@ import kotlin.random.Random
  * Parse useful data with [InnerTube] sending requests.
  * Modified from [ViMusic](https://github.com/vfsfitvnm/ViMusic)
  */
+import com.music.innertube.models.filterBlockedArtists
+
 object YouTube {
+  var blockedArtists: Set<String> = emptySet()
+
     private val innerTube = InnerTube()
 
     var locale: YouTubeLocale
@@ -576,23 +580,34 @@ object YouTube {
             }
         }
 
+        val title = header?.title?.runs?.firstOrNull()?.text ?: ""
+        val thumbnail = header?.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails?.lastOrNull()?.url ?: ""
+        val shuffleEndpoint = header?.buttons?.firstNotNullOfOrNull {
+            it.menuRenderer?.items?.firstOrNull()?.menuNavigationItemRenderer?.navigationEndpoint?.watchPlaylistEndpoint
+        } ?: header?.buttons?.firstNotNullOfOrNull {
+            it.musicPlayButtonRenderer?.playNavigationEndpoint?.watchPlaylistEndpoint
+        }
+        val radioEndpoint = header?.buttons?.firstNotNullOfOrNull {
+            it.menuRenderer?.items?.find { item ->
+                item.menuNavigationItemRenderer?.icon?.iconType == "MIX"
+            }?.menuNavigationItemRenderer?.navigationEndpoint?.watchPlaylistEndpoint
+        }
+
         PlaylistPage(
             playlist = PlaylistItem(
                 id = playlistId,
-                title = header?.title?.runs?.firstOrNull()?.text!!,
-                author = header.straplineTextOne?.runs?.firstOrNull()?.let {
+                title = title,
+                author = header?.straplineTextOne?.runs?.firstOrNull()?.let {
                     Artist(
                         name = it.text,
                         id = it.navigationEndpoint?.browseEndpoint?.browseId
                     )
                 },
-                songCountText = header.secondSubtitle?.runs?.firstOrNull()?.text,
-                thumbnail = header.thumbnail?.musicThumbnailRenderer?.thumbnail?.thumbnails?.lastOrNull()?.url!!,
+                songCountText = header?.secondSubtitle?.runs?.firstOrNull()?.text,
+                thumbnail = thumbnail,
                 playEndpoint = null,
-                shuffleEndpoint = header.buttons.lastOrNull()?.menuRenderer?.items?.firstOrNull()?.menuNavigationItemRenderer?.navigationEndpoint?.watchPlaylistEndpoint!!,
-                radioEndpoint = header.buttons.getOrNull(2)?.menuRenderer?.items?.find {
-                    it.menuNavigationItemRenderer?.icon?.iconType == "MIX"
-                }?.menuNavigationItemRenderer?.navigationEndpoint?.watchPlaylistEndpoint,
+                shuffleEndpoint = shuffleEndpoint,
+                radioEndpoint = radioEndpoint,
                 isEditable = editable
             ),
             songs = response.contents?.twoColumnBrowseResultsRenderer?.secondaryContents?.sectionListRenderer
@@ -688,7 +703,7 @@ object YouTube {
                 HomePage.Section.fromMusicCarouselShelfRenderer(it)
             }.toMutableList()
         val chips = sectionListRender.header?.chipCloudRenderer?.chips?.mapNotNull { HomePage.Chip.fromChipCloudChipRenderer(it) }
-        HomePage(chips, sections, continuation)
+        HomePage(chips, sections, continuation).filterBlockedArtists()
     }
 
     private suspend fun homeContinuation(continuation: String): Result<HomePage> = runCatching {

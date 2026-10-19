@@ -30,14 +30,15 @@ interface Queue {
                 this
             }
 
-        fun filterVideoSongs(disableVideos: Boolean = false) =
-            if (disableVideos) {
-                copy(
-                    items = items.filterVideoSongs(true),
-                )
-            } else {
+        fun filterVideoSongs(disableVideos: Boolean = false): Status {
+            if (!disableVideos) return this
+            val filtered = items.filterVideoSongs(true)
+            return if (filtered.isEmpty() && items.isNotEmpty()) {
                 this
+            } else {
+                copy(items = filtered)
             }
+        }
     }
 }
 

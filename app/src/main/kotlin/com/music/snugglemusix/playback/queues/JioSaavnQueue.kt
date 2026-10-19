@@ -31,7 +31,8 @@ class JioSaavnQueue(
                     registry.recommendationScorer.rankAndDiversify(
                         items = rawRecommendations,
                         region = region,
-                        tasteProfile = taste
+                        tasteProfile = taste,
+                        seedItem = initialSong.toMediaMetadata()
                     )
                 } else {
                     rawRecommendations

@@ -168,61 +168,7 @@ fun OnlineSearchScreen(
             )
         }
 
-        if (viewState.history.isNotEmpty() && viewState.suggestions.isNotEmpty()) {
-            item(key = "history_suggestion_spacer") {
-                Spacer(modifier = Modifier.height(16.dp).animateItem())
-            }
-        }
 
-        if (viewState.suggestions.isNotEmpty()) {
-            item(key = "suggestions_header") {
-                Text(
-                    text = stringResource(R.string.suggestions),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp).animateItem()
-                )
-            }
-        }
-
-        itemsIndexed(viewState.suggestions, key = { _, it -> "suggestion_$it" }) { index, query ->
-            SuggestionItem(
-                query = query,
-                online = true,
-                shape = getGroupedShape(index, viewState.suggestions.size),
-                onClick = {
-                    onSearch(query)
-                    onDismiss()
-                },
-                onFillTextField = {
-                    onQueryChange(TextFieldValue(query, TextRange(query.length)))
-                },
-                modifier = Modifier.animateItem(),
-                pureBlack = pureBlack
-            )
-        }
-
-        if (viewState.suggestions.isNotEmpty()) {
-            item(key = "suggestions_bottom_spacer") {
-                Spacer(modifier = Modifier.height(16.dp).animateItem())
-            }
-        }
-
-        if (viewState.items.isNotEmpty()) {
-            item(key = "search_divider") {
-                Text(
-                    text = stringResource(if (viewState.isFromLink) R.string.parsed_from_link else R.string.top_result),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 16.dp, top = 8.dp).animateItem()
-                )
-            }
-            item(key = "search_divider_spacer") {
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-        }
 
         itemsIndexed(viewState.items, key = { _, it -> "item_${it.id}" }) { index, item ->
             YouTubeListItem(
@@ -288,15 +234,11 @@ fun OnlineSearchScreen(
                                     if (item.id == mediaMetadata?.id) {
                                         playerConnection.togglePlayPause()
                                     } else {
-                                        if (com.snuggle.music.providers.JioSaavnProvider.isJioSaavnId(item.id)) {
-                                            playerConnection.playQueue(
-                                                com.snuggle.music.playback.queues.JioSaavnQueue(item)
-                                            )
-                                        } else {
+                                        
                                             playerConnection.playQueue(
                                                 YouTubeQueue.radio(item.toMediaMetadata())
                                             )
-                                        }
+                                        
                                         onDismiss()
                                     }
                                 }
@@ -356,6 +298,50 @@ fun OnlineSearchScreen(
                     .background(if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface)
                     .animateItem()
             )
+        }
+        if (viewState.items.isNotEmpty() && viewState.suggestions.isNotEmpty()) {
+            item(key = "items_suggestion_spacer") {
+                Spacer(modifier = Modifier.height(16.dp).animateItem())
+            }
+        } else if (viewState.history.isNotEmpty() && viewState.suggestions.isNotEmpty()) {
+            item(key = "history_suggestion_spacer") {
+                Spacer(modifier = Modifier.height(16.dp).animateItem())
+            }
+        }
+
+        if (viewState.suggestions.isNotEmpty()) {
+            item(key = "suggestions_header") {
+                Text(
+                    text = stringResource(R.string.suggestions),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp).animateItem()
+                )
+            }
+        }
+
+        itemsIndexed(viewState.suggestions, key = { _, it -> "suggestion_$it" }) { index, query ->
+            SuggestionItem(
+                query = query,
+                online = true,
+                shape = getGroupedShape(index, viewState.suggestions.size),
+                onClick = {
+                    onSearch(query)
+                    onDismiss()
+                },
+                onFillTextField = {
+                    onQueryChange(TextFieldValue(query, TextRange(query.length)))
+                },
+                modifier = Modifier.animateItem(),
+                pureBlack = pureBlack
+            )
+        }
+
+        if (viewState.suggestions.isNotEmpty()) {
+            item(key = "suggestions_bottom_spacer") {
+                Spacer(modifier = Modifier.height(16.dp).animateItem())
+            }
         }
     }
 }

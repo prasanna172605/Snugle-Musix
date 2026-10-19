@@ -2,7 +2,9 @@ package com.snuggle.music.ui.component
 
 import android.os.SystemClock
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.foundation.MutatorMutex
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -45,14 +47,14 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastCoerceIn
 import androidx.compose.ui.util.lerp
-import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.colorControls
-import com.kyant.backdrop.effects.lens
-import com.kyant.backdrop.effects.vibrancy
-import com.kyant.backdrop.highlight.Highlight
-import com.kyant.backdrop.shadow.InnerShadow
-import com.kyant.backdrop.shadow.Shadow
+import com.snuggle.music.ui.component.backdrop.drawBackdrop
+import com.snuggle.music.ui.component.backdrop.effects.blur
+import com.snuggle.music.ui.component.backdrop.effects.colorControls
+import com.snuggle.music.ui.component.backdrop.effects.lens
+import com.snuggle.music.ui.component.backdrop.effects.vibrancy
+import com.snuggle.music.ui.component.backdrop.highlight.Highlight
+import com.snuggle.music.ui.component.backdrop.shadow.InnerShadow
+import com.snuggle.music.ui.component.backdrop.shadow.Shadow
 import com.snuggle.music.ui.screens.Screens
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.Icon
@@ -77,15 +79,21 @@ private val BlobHeight = 56.dp
 fun LiquidGlassTabBar(
     tabs: List<Screens>,
     selectedTab: Int,
-    backdrop: PlatformBackdrop,
-    layer: GraphicsLayer,
     luminance: Float,
     modifier: Modifier = Modifier,
+    isInline: Boolean = false,
     onTabSelected: (Int) -> Unit,
 ) {
+    val glassConfig = LocalGlassEffectConfig.current
+    val backdrop = com.snuggle.music.ui.component.LocalAppBackdrop.current
     val density = LocalDensity.current
     val tabsCount = tabs.size
-    val tabWidthPx = with(density) { TabWidth.toPx() }
+    val effectiveTabWidth by androidx.compose.animation.core.animateDpAsState(
+        targetValue = if (isInline) 56.dp else TabWidth,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "tabWidth"
+    )
+    val tabWidthPx = with(density) { effectiveTabWidth.toPx() }
     val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
     val animationScope = rememberCoroutineScope()
     val barInteraction = rememberGlassInteraction()
@@ -138,11 +146,21 @@ fun LiquidGlassTabBar(
         modifier =
             modifier
                 .height(BarHeight)
-                .width(TabWidth * tabsCount)
+                .width(effectiveTabWidth * tabsCount)
                 .pointerInput(barInteraction) { barInteraction.detectPress(this) },
         contentAlignment = Alignment.CenterStart,
     ) {
-        Box(Modifier.matchParentSize().drawInteractiveGlass(isDark, backdrop, layer, luminance, CapsuleShape, barInteraction))
+        Box(
+            Modifier.matchParentSize().liquidGlass(
+                              config = glassConfig,
+                              shape = CapsuleShape
+                          )
+                          .graphicsLayer {
+                              val scale = androidx.compose.ui.util.lerp(1f, 0.96f, barInteraction.pressProgress)
+                              scaleX = scale
+                              scaleY = scale
+                          }
+        )
 
         Box(
             Modifier
@@ -187,7 +205,7 @@ fun LiquidGlassTabBar(
                             if (isDark) lerp(0.22f, 0.55f, lumNorm) else lerp(0.06f, 0.14f, lumNorm)
                         drawRect(Color.Black.copy(alpha = darken))
                     },
-                ).width(TabWidth - 8.dp)
+                ).width(effectiveTabWidth - 8.dp)
                 .height(BlobHeight),
         )
 
@@ -201,6 +219,9 @@ fun LiquidGlassTabBar(
                 LiquidGlassTab(
                     screen = screen,
                     selected = currentIndex == position,
+                    tabWidth = effectiveTabWidth,
+                    isInline = isInline,
+                    customTextColor = glassConfig.textColor,
                 ) {
                     if (position == currentIndex) {
                         onTabSelected(position)
@@ -218,12 +239,16 @@ fun LiquidGlassTabBar(
 private fun LiquidGlassTab(
     screen: Screens,
     selected: Boolean,
+    tabWidth: androidx.compose.ui.unit.Dp = TabWidth,
+    isInline: Boolean = false,
+    customTextColor: Color = Color.Unspecified,
     onClick: () -> Unit,
 ) {
-    val color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+    val defaultColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+    val color = if (customTextColor.isSpecified) customTextColor else defaultColor
     Column(
         Modifier
-            .width(TabWidth)
+            .width(tabWidth)
             .fillMaxHeight()
             .clip(CapsuleShape)
             .clickable(
@@ -241,12 +266,14 @@ private fun LiquidGlassTab(
                 contentDescription = stringResource(screen.titleId),
                 modifier = Modifier.size(24.dp)
             )
-            Text(
-                text = stringResource(screen.titleId),
-                style = MaterialTheme.typography.bodySmall,
-                color = color,
-                maxLines = 1,
-            )
+            if (!isInline) {
+                Text(
+                    text = stringResource(screen.titleId),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = color,
+                    maxLines = 1,
+                )
+            }
         }
     }
 }

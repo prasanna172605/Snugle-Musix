@@ -62,7 +62,7 @@ import androidx.compose.ui.unit.dp
 import com.snuggle.music.constants.AppBarHeight
 
 import com.snuggle.music.constants.UseLiquidGlassUiKey
-import com.snuggle.music.ui.component.LocalPlatformBackdrop
+import com.snuggle.music.ui.component.LocalAppBackdrop
 
 import com.snuggle.music.utils.rememberPreference
 
@@ -90,7 +90,7 @@ fun TopSearch(
     content: @Composable ColumnScope.() -> Unit = {},
 ) {
     val useLiquidGlassUi = false
-    val backdrop = LocalPlatformBackdrop.current
+    val backdrop = com.snuggle.music.ui.component.LocalAppBackdrop.current
     val finalShape = shape ?: RoundedCornerShape(24.dp)
     val glassModifier = Modifier
 

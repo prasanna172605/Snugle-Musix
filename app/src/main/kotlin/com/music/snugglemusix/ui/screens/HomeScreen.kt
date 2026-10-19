@@ -79,6 +79,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -366,19 +368,8 @@ fun CommunityPlaylistCard(
             ) {
                 IconButton(
                     onClick = {
-                        if (com.snuggle.music.providers.JioSaavnProvider.isJioSaavnId(item.playlist.id)) {
-                            if (item.songs.isNotEmpty()) {
-                                playerConnection?.playQueue(
-                                    com.snuggle.music.playback.queues.ListQueue(
-                                        title = item.playlist.title,
-                                        items = item.songs.map { it.toMediaMetadata().toMediaItem() }
-                                    )
-                                )
-                            }
-                        } else {
-                            item.playlist.playEndpoint?.let {
-                                playerConnection?.playQueue(YouTubeQueue(it))
-                            }
+                        item.playlist.playEndpoint?.let {
+                            playerConnection?.playQueue(YouTubeQueue(it))
                         }
                     },
                     modifier = Modifier
@@ -395,19 +386,8 @@ fun CommunityPlaylistCard(
 
                 IconButton(
                     onClick = {
-                        if (com.snuggle.music.providers.JioSaavnProvider.isJioSaavnId(item.playlist.id)) {
-                            if (item.songs.isNotEmpty()) {
-                                playerConnection?.playQueue(
-                                    com.snuggle.music.playback.queues.ListQueue(
-                                        title = item.playlist.title,
-                                        items = item.songs.shuffled().map { it.toMediaMetadata().toMediaItem() }
-                                    )
-                                )
-                            }
-                        } else {
-                            item.playlist.radioEndpoint?.let {
-                                playerConnection?.playQueue(YouTubeQueue(it))
-                            }
+                        item.playlist.radioEndpoint?.let {
+                            playerConnection?.playQueue(YouTubeQueue(it))
                         }
                     },
                     modifier = Modifier
@@ -438,19 +418,12 @@ fun CommunityPlaylistCard(
                                     ).toggleLike()
                                     insert(playlistEntity)
                                     scope.launch(Dispatchers.IO) {
-                                        val songList = if (com.snuggle.music.providers.JioSaavnProvider.isJioSaavnId(item.playlist.id)) {
-                                            item.songs.ifEmpty {
-                                                com.snuggle.music.providers.ProviderRegistry.activeInstance?.jioSaavnProvider
-                                                    ?.getPlaylist(item.playlist.id)?.getOrNull()?.second.orEmpty()
-                                            }
-                                        } else {
-                                            item.songs.ifEmpty {
-                                                YouTube.playlist(item.playlist.id).completed()
-                                                    .getOrNull()?.songs.orEmpty()
-                                            }
+                                        val songList = item.songs.ifEmpty {
+                                            YouTube.playlist(item.playlist.id).completed()
+                                                .getOrNull()?.songs.orEmpty()
                                         }
                                         songList.map { it.toMediaMetadata() }
-                                            .onEach(::insert)
+                                            .onEach { insert(it) }
                                             .mapIndexed { index, song ->
                                                 PlaylistSongMap(
                                                     songId = song.id,
@@ -459,7 +432,7 @@ fun CommunityPlaylistCard(
                                                     setVideoId = song.setVideoId
                                                 )
                                             }
-                                            .forEach(::insert)
+                                            .forEach { insert(it) }
                                     }
                                 }
                             } else {
@@ -667,6 +640,8 @@ fun HomeScreen(
     val backStackEntry by navController.currentBackStackEntryAsState()
     val scrollToTop =
         backStackEntry?.savedStateHandle?.getStateFlow("scrollToTop", false)?.collectAsState()
+    val refreshHome =
+        backStackEntry?.savedStateHandle?.getStateFlow("refreshHome", false)?.collectAsState()
 
 
     var randomSeed by rememberSaveable { mutableLongStateOf(System.currentTimeMillis()) }
@@ -683,6 +658,14 @@ fun HomeScreen(
         if (scrollToTop?.value == true) {
             lazylistState.animateScrollToItem(0)
             backStackEntry?.savedStateHandle?.set("scrollToTop", false)
+        }
+    }
+
+    LaunchedEffect(refreshHome?.value) {
+        if (refreshHome?.value == true) {
+            lazylistState.animateScrollToItem(0)
+            viewModel.refresh()
+            backStackEntry?.savedStateHandle?.set("refreshHome", false)
         }
     }
 
@@ -1301,11 +1284,7 @@ fun HomeScreen(
                                         Card(
                                             modifier = Modifier
                                                 .fillMaxSize()
-                                                .graphicsLayer {
-                                                    scaleX = cardScale
-                                                    scaleY = cardScale
-                                                    alpha = cardAlpha
-                                                }
+                                                .scale(cardScale).alpha(cardAlpha)
                                                 .combinedClickable(
                                                     onClick = {
                                                         if (isActive) {
@@ -1348,7 +1327,7 @@ fun HomeScreen(
                                                                     Color.Transparent,
                                                                     Color.Black.copy(alpha = 0.88f)
                                                                 ),
-                                                                startY = 200f
+                                                                
                                                             )
                                                         )
                                                 )
@@ -1425,18 +1404,12 @@ fun HomeScreen(
                                                     navController.navigate("online_playlist/${item.playlist.id.removePrefix("VL")}")
                                                 },
                                                 onSongClick = { song ->
-                                                    if (com.snuggle.music.providers.JioSaavnProvider.isJioSaavnId(song.id)) {
-                                                        playerConnection.playQueue(
-                                                            com.snuggle.music.playback.queues.JioSaavnQueue(song)
+                                                    playerConnection.playQueue(
+                                                        YouTubeQueue(
+                                                            song.endpoint ?: WatchEndpoint(videoId = song.id),
+                                                            song.toMediaMetadata()
                                                         )
-                                                    } else {
-                                                        playerConnection.playQueue(
-                                                            YouTubeQueue(
-                                                                song.endpoint ?: WatchEndpoint(videoId = song.id),
-                                                                song.toMediaMetadata()
-                                                            )
-                                                        )
-                                                    }
+                                                    )
                                                 }
                                             )
                                         }

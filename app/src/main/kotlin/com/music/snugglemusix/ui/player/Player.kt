@@ -295,6 +295,7 @@ fun BottomSheetPlayer(
     navController: NavController,
     modifier: Modifier = Modifier,
     pureBlack: Boolean,
+    isExpandable: Boolean = true,
 ) {
     val context = LocalContext.current
     val database = LocalDatabase.current
@@ -335,7 +336,7 @@ fun BottomSheetPlayer(
 
     val shouldUseDarkButtonColors = remember(playerBackground, useDarkTheme) {
         when (playerBackground) {
-            PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT, PlayerBackgroundStyle.GLOW_ANIMATED, PlayerBackgroundStyle.APPLE_MUSIC, PlayerBackgroundStyle.LIVE_MESH -> true
+            PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT, PlayerBackgroundStyle.GLOW_ANIMATED, PlayerBackgroundStyle.APPLE_MUSIC, PlayerBackgroundStyle.LIQUID_GLASS, PlayerBackgroundStyle.LIVE_MESH -> true
             PlayerBackgroundStyle.DEFAULT -> useDarkTheme
         }
     }
@@ -367,7 +368,7 @@ fun BottomSheetPlayer(
             val insetsController = WindowCompat.getInsetsController(window, window.decorView)
             
             val isLocal = mediaMetadata?.id?.isLocalMediaId() == true
-            if (isLocal || playerBackground in listOf(PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT, PlayerBackgroundStyle.GLOW_ANIMATED, PlayerBackgroundStyle.APPLE_MUSIC, PlayerBackgroundStyle.LIVE_MESH)) {
+            if (isLocal || playerBackground in listOf(PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT, PlayerBackgroundStyle.GLOW_ANIMATED, PlayerBackgroundStyle.APPLE_MUSIC, PlayerBackgroundStyle.LIQUID_GLASS, PlayerBackgroundStyle.LIVE_MESH)) {
                 insetsController.isAppearanceLightStatusBars = false
             } else {
                 insetsController.isAppearanceLightStatusBars = !useDarkTheme
@@ -665,6 +666,7 @@ fun BottomSheetPlayer(
         playerBackground == PlayerBackgroundStyle.GRADIENT ||
         playerBackground == PlayerBackgroundStyle.GLOW_ANIMATED ||
         playerBackground == PlayerBackgroundStyle.APPLE_MUSIC ||
+        playerBackground == PlayerBackgroundStyle.LIQUID_GLASS ||
         playerBackground == PlayerBackgroundStyle.LIVE_MESH -> {
             when (playerButtonsStyle) {
                 PlayerButtonsStyle.DEFAULT -> Pair(Color.White, Color.Black)
@@ -889,7 +891,7 @@ fun BottomSheetPlayer(
         isLocalMedia -> Color.Black
         playerBackground in listOf(PlayerBackgroundStyle.BLUR, PlayerBackgroundStyle.GRADIENT, PlayerBackgroundStyle.GLOW_ANIMATED, PlayerBackgroundStyle.APPLE_MUSIC) ->
             MaterialTheme.colorScheme.surfaceContainer
-        playerBackground == PlayerBackgroundStyle.LIVE_MESH -> Color.Black
+        playerBackground == PlayerBackgroundStyle.LIQUID_GLASS || playerBackground == PlayerBackgroundStyle.LIVE_MESH -> Color.Black
         else ->
             if (useBlackBackground) Color.Black
             else MaterialTheme.colorScheme.surfaceContainer
@@ -900,6 +902,7 @@ fun BottomSheetPlayer(
     BottomSheet(
         state = state,
         modifier = modifier,
+        isExpandable = isExpandable,
         background = {
             val backgroundThumbnailUrl = mediaMetadata?.thumbnailUrl ?: playerConnection.player.currentMediaItem?.mediaMetadata?.artworkUri?.toString()
             Box(
@@ -1221,7 +1224,7 @@ fun BottomSheetPlayer(
                             }
                         }
                     }
-                    PlayerBackgroundStyle.LIVE_MESH -> {
+                    PlayerBackgroundStyle.LIQUID_GLASS, PlayerBackgroundStyle.LIVE_MESH -> {
                         val infiniteTransition = rememberInfiniteTransition(label = "liveMeshRotation")
                         
                         val anchorRotation by infiniteTransition.animateFloat(

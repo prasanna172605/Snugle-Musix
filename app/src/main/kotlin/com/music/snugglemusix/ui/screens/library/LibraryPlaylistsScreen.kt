@@ -383,13 +383,7 @@ fun LibraryPlaylistsScreen(
                     }
                 }
 
-                HideOnScrollFAB(
-                    lazyListState = lazyListState,
-                    icon = R.drawable.add,
-                    onClick = {
-                        showCreatePlaylistDialog = true
-                    },
-                )
+
             }
 
             LibraryViewType.GRID -> {
@@ -517,13 +511,7 @@ fun LibraryPlaylistsScreen(
                     }
                 }
 
-                HideOnScrollFAB(
-                    lazyListState = lazyGridState,
-                    icon = R.drawable.add,
-                    onClick = {
-                        showCreatePlaylistDialog = true
-                    },
-                )
+
             }
         }
     }

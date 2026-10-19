@@ -108,8 +108,8 @@ constructor(
                 YTPlayerUtils.playerResponseForPlayback(
                     videoId = mediaId,
                     audioQuality = when (downloadQuality) {
-                        com.snuggle.music.constants.DownloadQuality.LOSSLESS -> AudioQuality.LOSSLESS
-                        com.snuggle.music.constants.DownloadQuality.SAAVN -> AudioQuality.SAAVN
+                        
+                        
                         else -> AudioQuality.OPUS
                     },
                     connectivityManager = connectivityManager,

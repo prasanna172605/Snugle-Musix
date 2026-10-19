@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -47,40 +48,15 @@ constructor(
     val viewState = _viewState.asStateFlow()
 
     init {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             query
                 .flatMapLatest { query ->
                     if (query.isEmpty()) {
-                        val trending = try {
-                            val region = regionalPreferenceManager.getActiveRegion()
-                            val tasteProfile = tasteProfileEngine.computeTasteProfile()
-                            val isColdStart = tasteProfile.experienceLevel == com.snuggle.music.personalization.UserExperienceLevel.COLD_START
-                            val targetLanguages = if (isColdStart) {
-                                region.primaryLanguages.entries
-                                    .sortedByDescending { it.value }
-                                    .filter { it.key != com.snuggle.music.personalization.MusicLanguage.GLOBAL }
-                                    .map { it.key.name.lowercase() }
-                            } else {
-                                val dominantLangs = tasteProfile.languageAffinities.entries
-                                    .sortedByDescending { it.value }
-                                    .filter { it.key != com.snuggle.music.personalization.MusicLanguage.GLOBAL }
-                                    .take(3)
-                                    .map { it.key.name.lowercase() }
-                                if (dominantLangs.isNotEmpty()) dominantLangs else {
-                                    region.primaryLanguages.entries
-                                        .sortedByDescending { it.value }
-                                        .filter { it.key != com.snuggle.music.personalization.MusicLanguage.GLOBAL }
-                                        .map { it.key.name.lowercase() }
-                                }
-                            }
-                            providerRegistry.jioSaavnProvider.getTrendingQueries(targetLanguages).getOrDefault(emptyList())
-                        } catch (_: Throwable) {
-                            emptyList()
-                        }
                         database.searchHistory().map { history ->
+                            val region = regionalPreferenceManager.getActiveRegion()
                             SearchSuggestionViewState(
                                 history = history,
-                                suggestions = trending.take(8)
+                                suggestions = region.starterPlaylistQueries
                             )
                         }
                     } else {

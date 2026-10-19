@@ -69,23 +69,7 @@ class OnlinePlaylistViewModel @Inject constructor(
             continuation = null
             proactiveLoadJob?.cancel() 
 
-            if (com.snuggle.music.providers.JioSaavnProvider.isJioSaavnId(playlistId)) {
-                providerRegistry.jioSaavnProvider.getPlaylist(playlistId)
-                    .onSuccess { (saavnPlaylist, saavnSongs) ->
-                        playlist.value = saavnPlaylist
-                        playlistSongs.value = applySongFilters(saavnSongs)
-                        relatedItems.value = emptyList()
-                        continuation = null
-                        _isLoading.value = false
-                    }.onFailure { throwable ->
-                        _error.value = throwable.message?.takeIf { it.isNotBlank() }
-                            ?: throwable::class.java.simpleName
-                            ?: "Failed to load JioSaavn playlist"
-                        _isLoading.value = false
-                        reportException(throwable)
-                    }
-                return@launch
-            }
+
 
             YouTube.playlist(playlistId)
                 .onSuccess { playlistPage ->
@@ -98,11 +82,29 @@ class OnlinePlaylistViewModel @Inject constructor(
                         startProactiveBackgroundLoading()
                     }
                 }.onFailure { throwable ->
-                    _error.value = throwable.message?.takeIf { it.isNotBlank() }
-                        ?: throwable::class.java.simpleName
-                        ?: "Failed to load playlist"
-                    _isLoading.value = false
-                    reportException(throwable)
+                    val cleanId = playlistId.removePrefix("VL")
+                    YouTube.next(com.music.innertube.models.WatchEndpoint(playlistId = cleanId))
+                        .onSuccess { nextResult ->
+                            playlist.value = com.music.innertube.models.PlaylistItem(
+                                id = cleanId,
+                                title = nextResult.title ?: "Playlist",
+                                author = null,
+                                songCountText = "${nextResult.items.size} songs",
+                                thumbnail = nextResult.items.firstOrNull()?.thumbnail ?: "",
+                                playEndpoint = null,
+                                shuffleEndpoint = null,
+                                radioEndpoint = null
+                            )
+                            playlistSongs.value = applySongFilters(nextResult.items)
+                            continuation = nextResult.continuation
+                            _isLoading.value = false
+                        }.onFailure {
+                            _error.value = throwable.message?.takeIf { it.isNotBlank() }
+                                ?: throwable::class.java.simpleName
+                                ?: "Failed to load playlist"
+                            _isLoading.value = false
+                            reportException(throwable)
+                        }
                 }
         }
     }
